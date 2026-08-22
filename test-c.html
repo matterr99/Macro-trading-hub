@@ -327,6 +327,7 @@
             } catch (err) { console.error("Cloud sync error:", err); }
         }
 
+        // --- CLOUD-FIRST LOAD PRIORITY FIX ---
         async function loadFromCloud() {
             try {
                 const res = await fetch('/api/valuation-state');
@@ -334,6 +335,8 @@
                     const cloudData = await res.json();
                     if (cloudData.data && validateAppData(cloudData.data)) {
                         appData = cloudData.data;
+                        // Update local cache as backup
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
                         document.getElementById('lastUpdatedNotice').innerText = `Data Status: Restored from Cloud`;
                         refreshApp(false); 
                         return;
@@ -354,7 +357,6 @@
                 } catch (e) {}
             }
 
-            // Explicit Fallback to default baseline
             document.getElementById('lastUpdatedNotice').innerText = `Data Status: Loaded Baseline Defaults`;
             refreshApp(false);
         }
