@@ -15,6 +15,145 @@
 </head>
 <body class="bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen flex flex-col justify-between">
 
+    <!-- 1. DYNAMIC HEADER CONTAINER -->
+    <div id="global-header"></div>
+
+    <!-- 2. TICKER TAPE WIDGET -->
+    <div class="w-full bg-[#020203] border-b border-zinc-900 overflow-hidden h-[46px] flex items-center shrink-0">
+        <div class="tradingview-widget-container w-full h-full">
+            <div class="tradingview-widget-container__widget h-full w-full"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+            {
+                "symbols": [
+                    { "proName": "FX:EURUSD", "title": "EUR/USD" },
+                    { "proName": "FX:GBPUSD", "title": "GBP/USD" },
+                    { "proName": "FX:USDJPY", "title": "USD/JPY" },
+                    { "proName": "FX:USDCAD", "title": "USD/CAD" }
+                ],
+                "showSymbolLogo": true,
+                "colorTheme": "dark",
+                "isTransparent": true,
+                "displayMode": "regular",
+                "locale": "en"
+            }
+            </script>
+        </div>
+    </div>
+
+    <!-- 3. HERO SECTION -->
+    <div class="relative w-full pt-8 pb-14 sm:pt-10 sm:pb-16 overflow-hidden border-b border-zinc-900/50">
+        <img src="assets/hero-dashboard.jpg" alt="Hero Background" class="absolute inset-0 w-full h-full object-cover object-center opacity-35" />
+        <div class="absolute inset-0 bg-gradient-to-t from-[#020203] via-[#020203]/40 to-transparent backdrop-blur-[3px]"></div>
+
+        <div class="relative w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
+            <header class="font-mono space-y-4">
+                <span class="text-cyan-500 font-bold text-[10px] tracking-widest uppercase block">// ARCHITECTURE DESK PORTAL</span>
+                <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase leading-none max-w-3xl">
+                    Macroeconomic Analysis Terminal
+                </h1>
+                <p class="text-xs text-zinc-400 font-sans max-w-2xl pt-1">
+                    Welcome to the digital node for Kairos Global Research. This system acts as a decentralized risk engine engineered to process cross-border structural changes and verify position parameters.
+                </p>
+            </header>
+        </div>
+    </div>
+
+    <!-- 4. MAIN CONTENT BODY -->
+    <main class="flex-grow w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <section class="bg-[#040406] border border-zinc-900 hover:border-cyan-900/50 rounded-xl p-5 sm:p-6 font-mono transition-all group">
+            <div class="space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-[9px] text-cyan-400 font-bold tracking-widest uppercase">// FEATURED ARTICLE</span>
+                    <span class="text-[10px] text-zinc-500">6 MIN READ</span>
+                </div>
+                <h2 class="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">
+                    <a href="articles/article.html" class="focus:outline-none">
+                        Why Your Lines and Indicators Don't Move Capital: The Harsh Truth About Technical Analysis
+                    </a>
+                </h2>
+                <p class="text-zinc-400 font-sans text-xs leading-relaxed line-clamp-2">
+                    Chart setups don't fail because you drew lines wrong—they fail because lines don't move financial markets. An examination of macroeconomics, interest rate mechanics, and institutional capital flow over retail technical analysis.
+                </p>
+                <div class="pt-2 flex items-center justify-between">
+                    <span class="text-[10px] text-zinc-500 uppercase tracking-wider">TOPIC: MACRO VS. TECHNICAL ANALYSIS</span>
+                    <a href="articles/article.html" class="text-xs text-cyan-500 hover:text-cyan-300 font-bold uppercase flex items-center gap-1">
+                        Read Full Log &rarr;
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-[#040406] border border-cyan-950 rounded-xl p-4 sm:p-5 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[0_0_20px_rgba(6,182,212,0.03)]">
+            <div class="flex items-start gap-3.5">
+                <span class="relative flex h-2 w-2 mt-1 shrink-0">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <div class="space-y-0.5">
+                    <span class="text-[9px] text-emerald-400 font-bold block tracking-widest uppercase">// INFRASTRUCTURE NOTICE</span>
+                    <div class="text-white font-bold tracking-wide uppercase text-[11px]">Proprietary Tools Interface Online</div>
+                    <p class="text-zinc-400 font-sans text-xs pt-0.5 max-w-xl">
+                        The quantitative analytics suite is fully operational. Terminal access parameters have cleared verification protocols.
+                    </p>
+                </div>
+            </div>
+            <a href="tools.html" class="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/40 transition-all text-center rounded-lg px-4 py-2 text-[11px] font-bold tracking-wider uppercase whitespace-nowrap sm:self-center">
+                Access Tools Terminal &rarr;
+            </a>
+        </section>
+
+        <section class="bg-[#040406] border border-zinc-900 rounded-xl p-6 font-mono text-xs space-y-5">
+            <div class="space-y-2">
+                <span class="text-[9px] text-zinc-600 block tracking-widest uppercase">// CURRENT CYCLE FOCUS CHANNELS</span>
+                <div class="flex flex-wrap gap-2 pt-0.5">
+                    <span class="bg-[#0c0c12] border border-zinc-800 text-zinc-400 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide">
+                        G10 Currency Majors
+                    </span>
+                    <span class="bg-[#0c0c12] border border-zinc-800 text-zinc-400 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide">
+                        Relative Pip Volatility
+                    </span>
+                    <span class="bg-[#0c0c12] border border-zinc-800 text-zinc-400 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide">
+                        Macro Event Risk Feeds
+                    </span>
+                </div>
+            </div>
+
+            <hr class="border-zinc-900/60">
+
+            <div class="space-y-1.5">
+                <div class="flex items-center gap-2">
+                    <span class="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.4)]"></span>
+                    <span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Weekly Intelligence Briefing</span>
+                </div>
+                <p class="text-zinc-400 font-sans text-xs leading-relaxed pl-3.5 max-w-2xl">
+                    Macro parameters indicate low volatility dispersion across core dollar pairings early this cycle. Monitor high-impact calendar risk data releases for trend expansion verification benchmarks. Detailed strategic outlines are processed inside the Research Feed logs dashboard.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <!-- 5. DYNAMIC FOOTER CONTAINER -->
+    <div id="global-footer"></div>
+
+    <script src="js/inject-engine.js"></script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAIROS GLOBAL RESEARCH // PORTAL</title>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body { background-color: #020203; color: #d4d4d8; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #020203; }
+        ::-webkit-scrollbar-thumb { background: #18181b; border-radius: 2px; }
+    </style>
+</head>
+<body class="bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen flex flex-col justify-between">
+
     <!-- 1. DYNAMIC HEADER INJECTION -->
     {% include 'components/header.html' %}
 
