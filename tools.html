@@ -11,8 +11,10 @@
 </head>
 <body class="bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen flex flex-col justify-between">
 
+    <!-- 1. DYNAMIC HEADER CONTAINER -->
     <div id="global-header"></div>
 
+    <!-- 2. MAIN CONTENT BODY -->
     <main class="flex-grow w-full max-w-4xl mx-auto px-4 py-10 space-y-10">
         <header class="font-mono space-y-4">
             <span class="text-cyan-500 font-bold text-[10px] tracking-widest uppercase block">// SUITE DE OPERACIONES DEL SISTEMA</span>
@@ -60,7 +62,7 @@
             </a>
 
             <!-- News Terminal -->
-            <a href="https://www.financialjuice.com/" target="_blank" class="group bg-[#040406] border border-zinc-900 rounded-xl p-6 hover:border-cyan-500/40 transition-all flex flex-col justify-between">
+            <a href="https://www.financialjuice.com/" target="_blank" rel="noopener noreferrer" class="group bg-[#040406] border border-zinc-900 rounded-xl p-6 hover:border-cyan-500/40 transition-all flex flex-col justify-between">
                 <div class="space-y-2 font-mono">
                     <span class="text-[10px] text-zinc-600 uppercase">// INTELIGENCIA GLOBAL_V1</span>
                     <h2 class="text-sm font-bold text-zinc-200 group-hover:text-white uppercase tracking-wide">Terminal de Noticias Financieras</h2>
@@ -71,7 +73,7 @@
                 </div>
             </a>
 
-            <!-- CONNECTED: Currency Sentiment Definer Node -->
+            <!-- Currency Sentiment Definer Node -->
             <a href="tools/quant-desk.html" class="group bg-[#040406] border border-zinc-900 rounded-xl p-6 hover:border-cyan-500/40 transition-all flex flex-col justify-between">
                 <div class="space-y-2 font-mono">
                     <span class="text-[10px] text-zinc-600 uppercase">// DEFINIDOR DE SENTIMIENTO_V1</span>
@@ -83,7 +85,7 @@
                 </div>
             </a>
 
-            <!-- UNIFIED MODULE: Institutional Macro Intelligence Suite -->
+            <!-- Institutional Macro Intelligence Suite -->
             <div class="group bg-[#040406] border border-zinc-900 rounded-xl p-6 hover:border-cyan-500/40 transition-all flex flex-col justify-between">
                 <div class="space-y-2 font-mono">
                     <span class="text-[10px] text-zinc-600 uppercase">// MOTORES MACRO_V1</span>
@@ -93,22 +95,23 @@
                 <div class="mt-6 pt-3 border-t border-zinc-900/40 flex flex-col sm:flex-row justify-between items-start sm:items-center font-mono text-[10px] gap-2">
                     <span class="text-zinc-600">SUITE KAIROS</span>
                     <div class="flex items-center space-x-1.5 text-cyan-500 font-bold uppercase text-[9px] flex-wrap">
-                        <a href="https://macro-trading-hub.onrender.com/calendar-filter-engine.html" class="hover:text-white transition-colors">Filtro Calendario &rarr;</a>
+                        <a href="https://macro-trading-hub.onrender.com/calendar-filter-engine.html" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Filtro Calendario &rarr;</a>
                         <span class="text-zinc-800">|</span>
                         <a href="tools/consensus-filter-engine.html" class="hover:text-white transition-colors">Consenso &rarr;</a>
                         <span class="text-zinc-800">|</span>
                         <a href="tools/central-banks.html" class="hover:text-white transition-colors">Bancos Centrales &rarr;</a>
                         <span class="text-zinc-800">|</span>
-                        <a href="https://macro-trading-hub.onrender.com/test-c.html" class="hover:text-white transition-colors">Ponderación &rarr;</a>
+                        <a href="https://macro-trading-hub.onrender.com/test-c.html" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors">Ponderación &rarr;</a>
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- 3. DYNAMIC FOOTER CONTAINER -->
     <div id="global-footer"></div>
     
-    <!-- Updated path to js/ folder -->
+    <!-- INJECTION ENGINE SCRIPT -->
     <script src="js/inject-engine.js"></script>
 </body>
 </html>
