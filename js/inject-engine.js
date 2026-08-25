@@ -1,78 +1,131 @@
-async function loadLayoutComponents() {
+ async function loadLayoutComponents() {
+
     try {
+
         const scriptTag = document.currentScript || document.querySelector('script[src*="inject-engine.js"]');
-        let scriptSrc = scriptTag ? scriptTag.getAttribute('src') : '/js/inject-engine.js';
-        
-        // Ensure basePath always starts with '/' for consistent root-relative routing
-        if (!scriptSrc.startsWith('/') && !scriptSrc.startsWith('http')) {
-            scriptSrc = '/' + scriptSrc;
-        }
+
+        const scriptSrc = scriptTag ? scriptTag.getAttribute('src') : 'js/inject-engine.js';
+
         const basePath = scriptSrc.replace('js/inject-engine.js', '');
 
-        // Fetch layout partials from root components directory
+
+        // Fetch layout partials
+
         const headerRes = await fetch(basePath + 'components/header.html');
+
         const footerRes = await fetch(basePath + 'components/footer.html');
 
-        // Inject header if found
+
+        // Only inject if file was actually found (HTTP 200)
+
         if (headerRes.ok) {
+
             document.getElementById('global-header').innerHTML = await headerRes.text();
+
         } else {
+
             console.error(`Header 404: Could not find '${basePath}components/header.html'`);
+
         }
 
-        // Inject footer if found
+
         if (footerRes.ok) {
+
             document.getElementById('global-footer').innerHTML = await footerRes.text();
+
         } else {
+
             console.error(`Footer 404: Could not find '${basePath}components/footer.html'`);
+
         }
 
-        // Normalize internal link paths across subfolders
+
+        // Normalize internal link paths
+
         document.querySelectorAll('#global-header a, #global-footer a').forEach(link => {
+
             let href = link.getAttribute('href');
+
             if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:')) {
+
                 if (href.startsWith('/')) href = href.slice(1);
+
                 link.setAttribute('href', basePath + href);
+
             }
+
         });
+
 
         // Highlight active page link
+
         const currentFileName = window.location.pathname.split("/").pop() || "index.html";
+
         document.querySelectorAll('[data-page]').forEach(link => {
+
             if (link.getAttribute('data-page') === currentFileName) {
+
                 link.classList.add('text-white');
+
                 link.classList.remove('text-zinc-400');
+
             }
+
         });
 
-        // Run Market Clocks
+
         initClockEngine();
 
+
     } catch (error) {
+
         console.error("Layout engine error:", error);
+
     }
+
 }
+
 
 function initClockEngine() {
+
     const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+
     
+
     setInterval(() => {
+
         try {
+
             const date = new Date();
+
             const ny = new Intl.DateTimeFormat('en-US', { ...timeOptions, timeZone: 'America/New_York' }).format(date);
+
             const lon = new Intl.DateTimeFormat('en-GB', { ...timeOptions, timeZone: 'Europe/London' }).format(date);
+
             const tyo = new Intl.DateTimeFormat('ja-JP', { ...timeOptions, timeZone: 'Asia/Tokyo' }).format(date);
+
             const utc = new Intl.DateTimeFormat('en-GB', { ...timeOptions, timeZone: 'UTC' }).format(date);
 
+
             if (document.getElementById('clock-ny')) document.getElementById('clock-ny').textContent = ny;
+
             if (document.getElementById('clock-lon')) document.getElementById('clock-lon').textContent = lon;
+
             if (document.getElementById('clock-tyo')) document.getElementById('clock-tyo').textContent = tyo;
+
             if (document.getElementById('clock-utc')) document.getElementById('clock-utc').textContent = utc;
+
             if (document.getElementById('live-time-mobile')) document.getElementById('live-time-mobile').textContent = utc + ' UTC';
+
         } catch (e) {
+
             // Ignore missing clock fields
+
         }
+
     }, 1000);
+
 }
 
-window.addEventListener('DOMContentLoaded', loadLayoutComponents);
+
+window.addEventListener('DOMContentLoaded', loadLayoutComponents); 
