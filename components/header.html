@@ -1,0 +1,54 @@
+<nav class="sticky top-0 z-50 bg-[#060608]/90 backdrop-blur-md border-b border-zinc-900 px-4 lg:px-8 h-16 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-8">
+        <!-- Wrapped logo brand in a link to home -->
+        <a href="/index.html" class="flex items-center gap-3 group">
+            <div class="h-6 w-6 rounded bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                <span class="text-[10px] font-mono font-bold text-white">KG</span>
+            </div>
+            <div class="font-mono">
+                <span class="text-xs font-bold text-white tracking-widest block leading-none group-hover:text-cyan-400 transition-colors">KAIROS GLOBAL</span>
+                <span class="text-[9px] text-zinc-500 tracking-wider uppercase mt-0.5 block">Research Portal</span>
+            </div>
+        </a>
+        <div class="hidden md:flex items-center gap-6 font-mono text-xs h-16" id="nav-links">
+            <a href="/index.html" data-page="index.html" class="h-full px-1 flex items-center font-medium text-zinc-400 hover:text-white transition-colors">Operations Console</a>
+            <a href="/research.html" data-page="research.html" class="h-full px-1 flex items-center font-medium text-zinc-400 hover:text-white transition-colors">Research Feed</a>
+            <a href="/academy.html" data-page="academy.html" class="h-full px-1 flex items-center font-medium text-zinc-400 hover:text-white transition-colors">Academy</a>
+            <a href="/tools.html" data-page="tools.html" class="h-full px-1 flex items-center font-medium text-zinc-400 hover:text-white transition-colors">Trading Tools</a>
+        </div>
+    </div>
+    
+    <div class="hidden lg:flex items-center gap-6 font-mono text-[10px] tracking-wider text-zinc-500 bg-[#040406] border border-zinc-900 px-4 py-1.5 rounded-lg select-none">
+        <div class="flex items-center gap-1.5">
+            <span class="text-zinc-600 font-bold uppercase">NY:</span>
+            <span id="clock-ny" class="text-zinc-300 font-semibold tabular-nums">--:--:--</span>
+        </div>
+        <div class="h-3 w-px bg-zinc-800"></div>
+        <div class="flex items-center gap-1.5">
+            <span class="text-zinc-600 font-bold uppercase">LON:</span>
+            <span id="clock-lon" class="text-zinc-300 font-semibold tabular-nums">--:--:--</span>
+        </div>
+        <div class="h-3 w-px bg-zinc-800"></div>
+        <div class="flex items-center gap-1.5">
+            <span class="text-zinc-600 font-bold uppercase">TYO:</span>
+            <span id="clock-tyo" class="text-zinc-300 font-semibold tabular-nums">--:--:--</span>
+        </div>
+        <div class="h-3 w-px bg-zinc-800"></div>
+        <div class="flex items-center gap-1.5">
+            <span class="text-cyan-600 font-bold uppercase">UTC:</span>
+            <span id="clock-utc" class="text-cyan-400 font-bold tabular-nums">--:--:--</span>
+        </div>
+    </div>
+
+    <div class="font-mono text-xs text-zinc-500 flex items-center gap-4 lg:hidden">
+        <span id="live-time-mobile" class="text-zinc-400 font-semibold tabular-nums">--:--:-- UTC</span>
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+    </div>
+</nav>
+
+<div class="md:hidden bg-[#060608] border-b border-zinc-900 px-2 py-2 flex justify-around font-mono text-[11px] shrink-0">
+    <a href="/index.html" data-page="index.html" class="text-zinc-400 py-1 px-2 font-medium">Console</a>
+    <a href="/research.html" data-page="research.html" class="text-zinc-400 py-1 px-2 font-medium">Research</a>
+    <a href="/academy.html" data-page="academy.html" class="text-zinc-400 py-1 px-2 font-medium">Academy</a>
+    <a href="/tools.html" data-page="tools.html" class="text-zinc-400 py-1 px-2 font-medium">Tools</a>
+</div>
