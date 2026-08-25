@@ -1,29 +1,27 @@
-/**
- * Kairos Global Layout Ingestion Engine
- */
 async function loadLayoutComponents() {
     try {
-        // 1. Resolve relative path based on script location
         const scriptTag = document.currentScript || document.querySelector('script[src*="inject-engine.js"]');
         const scriptSrc = scriptTag ? scriptTag.getAttribute('src') : 'js/inject-engine.js';
         const basePath = scriptSrc.replace('js/inject-engine.js', '');
 
-        // 2. Fetch header and footer partials
-        const [headerRes, footerRes] = await Promise.all([
-            fetch(basePath + 'components/header.html'),
-            fetch(basePath + 'components/footer.html')
-        ]);
+        // Fetch layout partials
+        const headerRes = await fetch(basePath + 'components/header.html');
+        const footerRes = await fetch(basePath + 'components/footer.html');
 
-        if (!headerRes.ok) throw new Error(`Header error: ${headerRes.status}`);
-        if (!footerRes.ok) throw new Error(`Footer error: ${footerRes.status}`);
+        // Only inject if file was actually found (HTTP 200)
+        if (headerRes.ok) {
+            document.getElementById('global-header').innerHTML = await headerRes.text();
+        } else {
+            console.error(`Header 404: Could not find '${basePath}components/header.html'`);
+        }
 
-        const headerTarget = document.getElementById('global-header');
-        const footerTarget = document.getElementById('global-footer');
+        if (footerRes.ok) {
+            document.getElementById('global-footer').innerHTML = await footerRes.text();
+        } else {
+            console.error(`Footer 404: Could not find '${basePath}components/footer.html'`);
+        }
 
-        if (headerTarget) headerTarget.innerHTML = await headerRes.text();
-        if (footerTarget) footerTarget.innerHTML = await footerRes.text();
-
-        // 3. Normalize internal link paths for nested subfolders
+        // Normalize internal link paths
         document.querySelectorAll('#global-header a, #global-footer a').forEach(link => {
             let href = link.getAttribute('href');
             if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:')) {
@@ -32,16 +30,15 @@ async function loadLayoutComponents() {
             }
         });
 
-        // 4. Highlight active navigation tab
+        // Highlight active page link
         const currentFileName = window.location.pathname.split("/").pop() || "index.html";
         document.querySelectorAll('[data-page]').forEach(link => {
             if (link.getAttribute('data-page') === currentFileName) {
-                link.classList.add('text-white', 'border-b-2', 'border-cyan-400');
+                link.classList.add('text-white');
                 link.classList.remove('text-zinc-400');
             }
         });
 
-        // 5. Initialize live clocks
         initClockEngine();
 
     } catch (error) {
@@ -60,19 +57,13 @@ function initClockEngine() {
             const tyo = new Intl.DateTimeFormat('ja-JP', { ...timeOptions, timeZone: 'Asia/Tokyo' }).format(date);
             const utc = new Intl.DateTimeFormat('en-GB', { ...timeOptions, timeZone: 'UTC' }).format(date);
 
-            const nyEl = document.getElementById('clock-ny');
-            const lonEl = document.getElementById('clock-lon');
-            const tyoEl = document.getElementById('clock-tyo');
-            const utcEl = document.getElementById('clock-utc');
-            const mobEl = document.getElementById('live-time-mobile');
-
-            if (nyEl) nyEl.textContent = ny;
-            if (lonEl) lonEl.textContent = lon;
-            if (tyoEl) tyoEl.textContent = tyo;
-            if (utcEl) utcEl.textContent = utc;
-            if (mobEl) mobEl.textContent = utc + ' UTC';
+            if (document.getElementById('clock-ny')) document.getElementById('clock-ny').textContent = ny;
+            if (document.getElementById('clock-lon')) document.getElementById('clock-lon').textContent = lon;
+            if (document.getElementById('clock-tyo')) document.getElementById('clock-tyo').textContent = tyo;
+            if (document.getElementById('clock-utc')) document.getElementById('clock-utc').textContent = utc;
+            if (document.getElementById('live-time-mobile')) document.getElementById('live-time-mobile').textContent = utc + ' UTC';
         } catch (e) {
-            // Ignore missing clock elements
+            // Ignore missing clock fields
         }
     }, 1000);
 }
