@@ -1,0 +1,20 @@
+/* Modern Minimalist Navigation Token Resets */
+body { background-color: #020203; color: #d4d4d8; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #020203; }
+::-webkit-scrollbar-thumb { background: #18181b; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #27272a; }
+
+.active-tab {
+    color: #06b6d4 !important;
+    border-bottom: 2px solid #06b6d4;
+}
+
+/* Markdown Custom Typographic Rendering Configurations */
+.prose-content h1 { font-size: 1.3rem; font-weight: 700; color: #ffffff; margin-top: 1.25rem; margin-bottom: 0.5rem; font-family: monospace; }
+.prose-content h2 { font-size: 1.05rem; font-weight: 700; color: #f4f4f5; margin-top: 1.25rem; margin-bottom: 0.5rem; font-family: monospace; }
+.prose-content p { font-size: 0.85rem; color: #a1a1aa; line-height: 1.6; margin-bottom: 0.85rem; }
+.prose-content code { background: #09090e; border: 1px solid #1e1e2f; padding: 0.15rem 0.3rem; border-radius: 3px; font-family: monospace; font-size: 0.75rem; color: #e11d48; }
+.prose-content pre { background: #040406; border: 1px solid #12121c; padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 1rem 0; }
+.prose-content pre code { background: transparent; border: none; padding: 0; color: #e4e4e7; }
+.prose-content ul { list-style-type: square; padding-left: 1.25rem; margin-bottom: 1rem; font-size: 0.85rem; color: #a1a1aa; }
