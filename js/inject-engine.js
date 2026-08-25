@@ -1,27 +1,33 @@
 async function loadLayoutComponents() {
     try {
         const scriptTag = document.currentScript || document.querySelector('script[src*="inject-engine.js"]');
-        const scriptSrc = scriptTag ? scriptTag.getAttribute('src') : 'js/inject-engine.js';
+        let scriptSrc = scriptTag ? scriptTag.getAttribute('src') : '/js/inject-engine.js';
+        
+        // Ensure basePath always starts with '/' for consistent root-relative routing
+        if (!scriptSrc.startsWith('/') && !scriptSrc.startsWith('http')) {
+            scriptSrc = '/' + scriptSrc;
+        }
         const basePath = scriptSrc.replace('js/inject-engine.js', '');
 
-        // Fetch layout partials
+        // Fetch layout partials from root components directory
         const headerRes = await fetch(basePath + 'components/header.html');
         const footerRes = await fetch(basePath + 'components/footer.html');
 
-        // Only inject if file was actually found (HTTP 200)
+        // Inject header if found
         if (headerRes.ok) {
             document.getElementById('global-header').innerHTML = await headerRes.text();
         } else {
             console.error(`Header 404: Could not find '${basePath}components/header.html'`);
         }
 
+        // Inject footer if found
         if (footerRes.ok) {
             document.getElementById('global-footer').innerHTML = await footerRes.text();
         } else {
             console.error(`Footer 404: Could not find '${basePath}components/footer.html'`);
         }
 
-        // Normalize internal link paths
+        // Normalize internal link paths across subfolders
         document.querySelectorAll('#global-header a, #global-footer a').forEach(link => {
             let href = link.getAttribute('href');
             if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:')) {
@@ -39,6 +45,7 @@ async function loadLayoutComponents() {
             }
         });
 
+        // Run Market Clocks
         initClockEngine();
 
     } catch (error) {
