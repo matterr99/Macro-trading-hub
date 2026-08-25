@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAIROS GLOBAL RESEARCH // DEFINIDOR DE SENTIMIENTO DE DIVISAS</title>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body { background-color: #020203; color: #d4d4d8; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #020203; }
+        ::-webkit-scrollbar-thumb { background: #18181b; border-radius: 2px; }
+
+        /* Kairos Cyan Glow Active Buy State */
+        .active-buy { 
+            background-color: rgba(6, 182, 212, 0.1) !important; 
+            color: #22d3ee !important; 
+            border-color: #06b6d4 !important;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.15);
+        }
+        /* Kairos Rose/Red Active Sell State */
+        .active-sell { 
+            background-color: rgba(244, 63, 94, 0.1) !important; 
+            color: #fb7185 !important; 
+            border-color: #f43f5e !important;
+            box-shadow: 0 0 10px rgba(244, 63, 94, 0.15);
+        }
+        /* Kairos Soft Muted Active Neutral State */
+        .active-neutral { 
+            background-color: #0c0c12 !important; 
+            color: #a1a1aa !important; 
+            border-color: #27272a !important; 
+        }
+
+        /* --- CONTROLADOR DE IMPRESIÓN --- */
+        #pdf-report-container {
+            display: none;
+        }
+
+        @media print {
+            body, html {
+                background-color: white !important;
+                color: #0f172a !important;
+                font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            }
+            #web-app-interface {
+                display: none !important;
+            }
+            #pdf-report-container {
+                display: block !important;
+                width: 100% !important;
+                background: white !important;
+                color: #0f172a !important;
+            }
+            @page {
+                size: portrait;
+                margin: 1.2cm;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .pdf-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-bottom: 1.5rem !important;
+                page-break-inside: avoid !important;
+            }
+            .pdf-table th {
+                background-color: #f8fafc !important;
+                color: #0f172a !important;
+                font-weight: 700 !important;
+                font-size: 10px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.05em !important;
+                border: 1px solid #cbd5e1 !important;
+                padding: 8px 10px !important;
+                text-align: left;
+            }
+            .pdf-table td {
+                border: 1px solid #e2e8f0 !important;
+                padding: 8px 10px !important;
+                font-size: 11px !important;
+                color: #334155 !important;
+                vertical-align: top !important;
+            }
+            .pdf-section-title {
+                font-size: 11px !important;
+                font-weight: 800 !important;
+                letter-spacing: 0.05em !important;
+                text-transform: uppercase !important;
+                color: #0f172a !important;
+                margin-bottom: 0.5rem !important;
+                border-bottom: 2px solid #0f172a !important;
+                padding-bottom: 2px !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- ========================================== -->
+    <!-- 💻 INTERFAZ WEB INTERACTIVA (OCULTA EN IMPRESIÓN) -->
+    <!-- ========================================== -->
+    <div id="web-app-interface" class="flex-grow flex flex-col justify-between">
+        
+        <!-- Punto de Inyección del Menú Global -->
+        <div id="global-header"></div>
+
+        <!-- Ticker Tape de TradingView -->
+        <div class="w-full bg-[#020203] border-b border-zinc-900 overflow-hidden h-[46px] flex items-center shrink-0">
+            <div class="tradingview-widget-container w-full h-full">
+                <div class="tradingview-widget-container__widget h-full w-full"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+                {
+                    "symbols": [
+                        { "proName": "FX:EURUSD", "title": "EUR/USD" }, { "proName": "FX:GBPUSD", "title": "GBP/USD" },
+                        { "proName": "FX:USDJPY", "title": "USD/JPY" }, { "proName": "FX:USDCAD", "title": "USD/CAD" }
+                    ],
+                    "showSymbolLogo": true, "colorTheme": "dark", "isTransparent": true, "displayMode": "regular", "locale": "es"
+                }
+                </script>
+            </div>
+        </div>
+
+        <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- COLUMNA IZQUIERDA: Dossier Semanal -->
+            <section class="lg:col-span-1 space-y-6">
+                <!-- Encabezado -->
+                <header class="font-mono space-y-4">
+                    <span class="text-cyan-400 font-bold text-[10px] tracking-widest uppercase block">// PORTAL MESA DE TRADING</span>
+                    <h1 class="text-2xl font-black text-white tracking-tight uppercase leading-none">
+                        Definidor de Sentimiento
+                    </h1>
+                    <p class="text-[11px] text-zinc-400 font-sans max-w-md pt-0.5 leading-relaxed">
+                        Registra eventos económicos recientes y verifica los filtros clave del mercado para determinar si un par de divisas es fundamentalmente fuerte, débil o neutral.
+                    </p>
+                    
+                    <!-- BOTÓN DE CAMBIO A INGLÉS -->
+                    <div class="pt-2">
+                        <a href="quant-desk.html" class="inline-flex items-center gap-2 bg-zinc-950 border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all rounded-xl px-4 py-2.5 text-xs font-black tracking-widest uppercase shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                            <span>🌐 ENGLISH VERSION</span>
+                        </a>
+                    </div>
+                </header>
+
+                <!-- Cuadro de Notas Dossier -->
+                <div class="bg-[#040406] border border-zinc-900 rounded-xl p-5 space-y-4 font-mono text-xs">
+                    <span class="text-[10px] text-cyan-400 font-bold block tracking-widest uppercase mb-1">// NOTAS CLAVE SEMANALES</span>
+                    
+                    <div>
+                        <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Política del Banco Central</label>
+                        <textarea id="web-note-cb" oninput="saveToLocalStorage()" class="w-full bg-[#020203] border border-zinc-900 rounded-lg p-2.5 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500/50 h-32 font-mono transition" placeholder="Rastrea cambios en tasas de interés, discursos y actualizaciones del banco central..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Riesgos Geopolíticos</label>
+                        <textarea id="web-note-geo" oninput="saveToLocalStorage()" class="w-full bg-[#020203] border border-zinc-900 rounded-lg p-2.5 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500/50 h-32 font-mono transition" placeholder="Rastrea conflictos globales, guerras comerciales y noticias de activos refugio..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLUMNA DERECHA: Embudo Cuantitativo -->
+            <section class="lg:col-span-2 space-y-6">
+                <div class="bg-[#040406] border border-zinc-900 rounded-xl p-6 shadow-lg">
+                    
+                    <!-- Selector de Activos y Panel de Veredicto -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-900 pb-5 mb-6 gap-4">
+                        <div class="font-mono">
+                            <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block">// SELECCIONAR PAR DE DIVISAS</span>
+                            <div class="flex items-center space-x-2 bg-[#020203] border border-zinc-900 rounded-lg px-3 py-1.5 mt-1.5">
+                                <!-- Selector Base -->
+                                <select id="base-currency-select" onchange="updateCurrencyLabels()" class="bg-transparent text-xl font-black focus:outline-none text-white cursor-pointer hover:text-cyan-400 transition font-mono">
+                                    <option value="EUR" class="bg-[#020203]">EUR</option>
+                                    <option value="USD" class="bg-[#020203]">USD</option>
+                                    <option value="GBP" class="bg-[#020203]">GBP</option>
+                                    <option value="AUD" class="bg-[#020203]">AUD</option>
+                                    <option value="NZD" class="bg-[#020203]">NZD</option>
+                                    <option value="CAD" class="bg-[#020203]">CAD</option>
+                                    <option value="CHF" class="bg-[#020203]">CHF</option>
+                                    <option value="JPY" class="bg-[#020203]">JPY</option>
+                                </select>
+                                
+                                <span class="text-zinc-600 text-lg font-bold font-mono">/</span>
+
+                                <!-- Selector Cotizada -->
+                                <select id="quote-currency-select" onchange="updateCurrencyLabels()" class="bg-transparent text-xl font-black focus:outline-none text-white cursor-pointer hover:text-cyan-400 transition font-mono">
+                                    <option value="EUR" class="bg-[#020203]">EUR</option>
+                                    <option value="USD" class="bg-[#020203]">USD</option>
+                                    <option value="GBP" class="bg-[#020203]">GBP</option>
+                                    <option value="AUD" class="bg-[#020203]" selected>AUD</option>
+                                    <option value="NZD" class="bg-[#020203]">NZD</option>
+                                    <option value="CAD" class="bg-[#020203]">CAD</option>
+                                    <option value="CHF" class="bg-[#020203]">CHF</option>
+                                    <option value="JPY" class="bg-[#020203]">JPY</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Panel de Estado -->
+                        <div id="decision-panel" class="p-4 rounded-xl border flex flex-col items-center justify-center w-full sm:w-64 bg-[#020203] border-zinc-900 transition font-mono">
+                            <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">// SENTIMIENTO GENERAL</span>
+                            <span id="decision-status" class="text-md font-black mt-1 text-zinc-500 tracking-wider">SIN SESGO</span>
+                            <span id="decision-reason" class="text-[9px] text-zinc-600 mt-1 text-center font-sans">Agrega un evento económico a continuación para ver resultados.</span>
+                        </div>
+                    </div>
+
+                    <!-- PUNTO 1: CALENDARIO DE CATALIZADORES -->
+                    <div class="bg-[#020203] border border-zinc-900 rounded-xl p-4 mb-6 shadow-inner relative font-mono">
+                        <div class="flex justify-between items-center border-b border-zinc-900 pb-2 mb-4">
+                            <div>
+                                <span class="text-[10px] font-black text-cyan-400 uppercase tracking-widest block">// PUNTO 1: CATALIZADOR DE NOTICIAS ECONÓMICAS</span>
+                                <h3 class="text-xs font-bold text-white mt-0.5">Datos Económicos y Eventos Clave</h3>
+                            </div>
+                            <div class="text-[10px] text-zinc-400 font-mono">
+                                Balance de Puntuación: <span id="net-calendar-weight" class="font-bold text-white bg-[#0c0c12] border border-zinc-800 px-1.5 py-0.5 rounded">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                            <!-- IZQUIERDA: Divisa Base -->
+                            <div class="bg-[#040406] p-3 rounded-lg border border-zinc-900">
+                                <div class="flex justify-between items-center border-b border-zinc-900 pb-2 mb-3">
+                                    <span id="base-col-title" class="text-[10px] font-bold text-cyan-400 uppercase">Eventos EUR</span>
+                                    <button type="button" onclick="addNewEventRow('base')" class="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/40 text-[9px] font-bold px-2 py-1 rounded transition-all">
+                                        + AGREGAR EVENTO
+                                    </button>
+                                </div>
+                                <div id="base-events-list" class="space-y-2.5"></div>
+                            </div>
+
+                            <!-- DERECHA: Divisa Cotizada -->
+                            <div class="bg-[#040406] p-3 rounded-lg border border-zinc-900">
+                                <div class="flex justify-between items-center border-b border-zinc-900 pb-2 mb-3">
+                                    <span id="quote-col-title" class="text-[10px] font-bold text-cyan-400 uppercase">Eventos AUD</span>
+                                    <button type="button" onclick="addNewEventRow('quote')" class="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/40 text-[9px] font-bold px-2 py-1 rounded transition-all">
+                                        + AGREGAR EVENTO
+                                    </button>
+                                </div>
+                                <div id="quote-events-list" class="space-y-2.5"></div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- LOS 4 FACTORES DE SOPORTE -->
+                    <div class="space-y-3 font-mono text-xs">
+                        <div class="flex justify-between items-center border-b border-zinc-900/60 pb-1">
+                            <span class="text-[11px] font-black text-cyan-400 uppercase tracking-widest block">// PUNTO 2-5: FACTORES DE SOPORTE DEL MERCADO (REQUIERE AL MENOS 2)</span>
+                            <span id="consensus-badge" class="text-[9px] bg-zinc-900 border border-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded transition font-mono">Perfil de Volatilidad Normal</span>
+                        </div>
+
+                        <!-- PILAR 2 -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#020203] border border-zinc-900 p-3.5 rounded-lg gap-4">
+                            <div>
+                                <span class="text-[10px] text-zinc-400 font-bold block tracking-wider">// PUNTO 2</span>
+                                <h5 class="text-xs font-semibold text-white">Sentimiento Minorista (SSI)</h5>
+                                <p class="text-[11px] text-zinc-500 font-sans">Posicionamiento minorista (ir en contra de la mayoría).</p>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5 w-full sm:w-auto shrink-0 sm:justify-end">
+                                <button onclick="togglePillar(2, 'buy')" id="p2-buy" class="flex-1 sm:flex-initial text-center min-w-[90px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-400 transition-all">SOPORTE COMPRA</button>
+                                <button onclick="togglePillar(2, 'sell')" id="p2-sell" class="flex-1 sm:flex-initial text-center min-w-[90px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-400 transition-all">SOPORTE VENTA</button>
+                                <button onclick="togglePillar(2, 'neutral')" id="p2-neutral" class="flex-1 sm:flex-initial text-center min-w-[70px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 active-neutral">NEUTRO</button>
+                            </div>
+                        </div>
+
+                        <!-- PILAR 3 (PONDERACIÓN) -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#020203] border border-zinc-900 p-3.5 rounded-lg gap-4">
+                            <div>
+                                <span class="text-[10px] text-zinc-400 font-bold block tracking-wider">// PUNTO 3</span>
+                                <h5 class="text-xs font-semibold text-white">Ponderación de Divisas</h5>
+                                <p class="text-[11px] text-zinc-500 font-sans">Puntuación macro semanal basada en inflación, empleo y salarios.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5 w-full sm:w-auto shrink-0 sm:justify-end">
+                                <button onclick="togglePillar(3, 'buy')" id="p3-buy" class="flex-1 sm:flex-initial text-center min-w-[90px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-400 transition-all">SOPORTE COMPRA</button>
+                                <button onclick="togglePillar(3, 'sell')" id="p3-sell" class="flex-1 sm:flex-initial text-center min-w-[90px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-400 transition-all">SOPORTE VENTA</button>
+                                <button onclick="togglePillar(3, 'neutral')" id="p3-neutral" class="flex-1 sm:flex-initial text-center min-w-[70px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 active-neutral">NEUTRO</button>
+                            </div>
+                        </div>
+
+                        <!-- PILAR 4 (SENTIMIENTO DE RIESGO Y COMMODITIES) -->
+                        <div class="bg-[#020203] border border-zinc-900 p-3.5 rounded-lg space-y-3">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <span class="text-[10px] text-zinc-400 font-bold block tracking-wider">// PUNTO 4</span>
+                                    <h5 class="text-xs font-semibold text-white">Sentimiento de Riesgo (Risk-On / Risk-Off)</h5>
+                                    <p class="text-[11px] text-zinc-500 font-sans">Estado de ánimo general del mercado en acciones, petróleo y oro.</p>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 w-full sm:w-auto shrink-0 sm:justify-end">
+                                    <button onclick="togglePillar(4, 'buy')" id="p4-buy" class="flex-1 sm:flex-initial text-center min-w-[90px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-400 transition-all">SOPORTE COMPRA</button>
+                                    <button onclick="togglePillar(4, 'sell')" id="p4-sell" class="flex-1 sm:flex-initial text-center min-w-[90px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-400 transition-all">SOPORTE VENTA</button>
+                                    <button onclick="togglePillar(4, 'neutral')" id="p4-neutral" class="flex-1 sm:flex-initial text-center min-w-[70px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 active-neutral">NEUTRO</button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-zinc-900/60">
+                                <div>
+                                    <label class="block text-[8px] font-bold text-zinc-500 uppercase mb-1">Petróleo Crudo (WTI)</label>
+                                    <input type="text" id="p4-oil" oninput="saveToLocalStorage()" placeholder="ej. Cayendo ($80)" class="w-full bg-[#040406] border border-zinc-900 rounded p-1.5 text-[10px] focus:outline-none focus:border-cyan-500/50 text-white font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[8px] font-bold text-zinc-500 uppercase mb-1">Oro (XAU)</label>
+                                    <input type="text" id="p4-gold" oninput="saveToLocalStorage()" placeholder="ej. Demanda de refugio" class="w-full bg-[#040406] border border-zinc-900 rounded p-1.5 text-[10px] focus:outline-none focus:border-cyan-500/50 text-white font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[8px] font-bold text-zinc-500 uppercase mb-1">Notas de Factores de Riesgo</label>
+                                    <input type="text" id="p4-notes" oninput="saveToLocalStorage()" placeholder="ej. Pláticas de paz = Rally Risk-ON" class="w-full bg-[#040406] border border-zinc-900 rounded p-1.5 text-[10px] focus:outline-none focus:border-cyan-500/50 text-white font-mono">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PILAR 5 (BANCOS CENTRALES) -->
+                        <div class="bg-[#020203] border border-zinc-900 p-3.5 rounded-lg space-y-3">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <span class="text-[10px] text-zinc-400 font-bold block tracking-wider">// PUNTO 5</span>
+                                    <h5 class="text-xs font-semibold text-white">Tasas de Interés y Bancos Centrales</h5>
+                                    <p class="text-[11px] text-zinc-500 font-sans">Tendencias de tasas de interés y postura de política monetaria.</p>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 w-full sm:w-auto shrink-0 sm:justify-end">
+                                    <button onclick="togglePillar(5, 'buy')" id="p5-buy" class="flex-1 sm:flex-initial text-center min-w-[90px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-400 transition-all">SOPORTE COMPRA</button>
+                                    <button onclick="togglePillar(5, 'sell')" id="p5-sell" class="flex-1 sm:flex-initial text-center min-w-[90px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 hover:border-cyan-500/40 hover:text-cyan-400 transition-all">SOPORTE VENTA</button>
+                                    <button onclick="togglePillar(5, 'neutral')" id="p5-neutral" class="flex-1 sm:flex-initial text-center min-w-[70px] bg-zinc-900 border border-zinc-800 text-[10px] px-2.5 py-1.5 rounded-md font-bold text-zinc-300 active-neutral">NEUTRO</button>
+                                </div>
+                            </div>
+                            <div class="pt-1 border-t border-zinc-900/60">
+                                <label class="block text-[8px] font-bold text-zinc-500 uppercase mb-1">Notas de Banco Central y Tasas</label>
+                                <input type="text" id="p5-notes" oninput="saveToLocalStorage()" placeholder="ej. Discursos hawkish del BoJ vs perspectiva de recortes del BoC..." class="w-full bg-[#040406] border border-zinc-900 rounded p-1.5 text-[10px] focus:outline-none focus:border-cyan-500/50 text-white font-mono">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Acciones del Sistema -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 w-full">
+            <div class="bg-[#08080c] border border-zinc-900 rounded-xl p-6 font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="text-xs font-bold text-cyan-400 uppercase tracking-wider">// GENERAR REPORTE DE ESTRATEGIA</div>
+                    <p class="text-zinc-500 text-[11px] font-sans">Guarda tus alineaciones activas de sentimiento y notas de mercado directamente en un reporte PDF estructurado.</p>
+                </div>
+                <button onclick="prepareAndPrint()" class="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-cyan-400 hover:border-cyan-500/40 transition-all text-center rounded-lg px-5 py-2 text-xs font-bold tracking-wider uppercase whitespace-nowrap">
+                    GENERAR REPORTE.PDF &rarr;
+                </button>
+            </div>
+        </section>
+
+        <!-- Pie de página -->
+        <div id="global-footer"></div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 📄 PLANTILLA DE IMPRESIÓN DEL REPORTE PDF -->
+    <!-- ========================================== -->
+    <div id="pdf-report-container" class="p-4 text-slate-950 max-w-4xl mx-auto">
+        
+        <div class="border-b-4 border-slate-950 pb-3 mb-5 flex justify-between items-end">
+            <div>
+                <h1 class="text-2xl font-black tracking-tight text-slate-950 uppercase">KAIROS GLOBAL RESEARCH</h1>
+                <p class="text-[9px] text-slate-500 uppercase tracking-widest font-mono mt-0.5">Motor de Sentimiento de Divisas // Evaluación Técnica de Riesgo</p>
+            </div>
+            <div class="text-right font-mono">
+                <div class="text-lg font-black text-slate-900" id="print-target-pair">EUR/AUD</div>
+                <div class="text-[9px] text-slate-500 uppercase mt-0.5" id="print-date">Actualización de Informe</div>
+            </div>
+        </div>
+
+        <!-- Tabla 1: Resumen Táctico -->
+        <div class="pdf-section-title">1. Resumen Táctico Ejecutivo</div>
+        <table class="pdf-table">
+            <thead>
+                <tr>
+                    <th style="width: 25%;">Par Objetivo</th>
+                    <th style="width: 25%;">Fecha de Ejecución</th>
+                    <th style="width: 30%;">Veredicto Táctico</th>
+                    <th style="width: 20%; text-align: right;">Peso Neto Calendario</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="table-print-pair" class="font-bold">EUR/AUD</td>
+                    <td id="table-print-date">Cargando...</td>
+                    <td id="table-print-verdict" class="font-bold tracking-wide uppercase">Sin Sesgo Activo Registrado</td>
+                    <td id="table-print-weight" class="font-bold font-mono text-right">0</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="bg-slate-50/50">
+                        <span class="font-bold text-[10px] uppercase font-mono text-slate-400 block mb-0.5">Contexto del Análisis Lógico del Sistema</span>
+                        <p id="table-print-reason" class="text-slate-600 font-serif italic text-xs">A la espera de catalizadores...</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Tabla 2: Matriz Fundamental -->
+        <div class="pdf-section-title">2. Matriz de Catalizadores del Calendario Fundamental</div>
+        <table class="pdf-table">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Activo</th>
+                    <th style="width: 30%;">Evento Económico</th>
+                    <th style="width: 20%;">Sesgo Direccional</th>
+                    <th style="width: 30%;">Nota de Ejecución del Analista / Límites del Mercado</th>
+                </tr>
+            </thead>
+            <tbody id="table-print-catalysts-body">
+                <!-- Inyectado vía JavaScript -->
+            </tbody>
+        </table>
+
+        <!-- Tabla 3: Cuadro de Puntuación -->
+        <div class="pdf-section-title">3. Vectores de Alineación de Métricas Cuantitativas</div>
+        <table class="pdf-table">
+            <thead>
+                <tr>
+                    <th style="width: 60%;">Pilar Táctico del Sistema</th>
+                    <th style="width: 40%; text-align: right;">Resultado de Alineación</th>
+                </tr>
+            </thead>
+            <tbody id="table-print-pillars-body">
+                <!-- Inyectado vía JavaScript -->
+            </tbody>
+        </table>
+
+        <!-- Tabla 4: Dossier de Inteligencia Macro -->
+        <div class="pdf-section-title">4. Dossier de Inteligencia de Riesgo del Régimen Macro</div>
+        <table class="pdf-table">
+            <thead>
+                <tr>
+                    <th style="width: 30%;">Dominio de Régimen</th>
+                    <th style="width: 70%;">Evaluación del Analista y Observaciones Intermercado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="font-bold uppercase tracking-wider font-mono bg-slate-50/50">Sentimiento de Riesgo y Factores Intermercado</td>
+                    <td id="table-print-note-risk" class="font-serif leading-relaxed text-slate-700 whitespace-pre-wrap"></td>
+                </tr>
+                <tr>
+                    <td class="font-bold uppercase tracking-wider font-mono bg-slate-50/50">Trayectoria de Política Monetaria</td>
+                    <td id="table-print-note-cb" class="font-serif leading-relaxed text-slate-700 whitespace-pre-wrap"></td>
+                </tr>
+                <tr>
+                    <td class="font-bold uppercase tracking-wider font-mono bg-slate-50/50">Riesgos y Peligros Geopolíticos</td>
+                    <td id="table-print-note-geo" class="font-serif leading-relaxed text-slate-700 whitespace-pre-wrap"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="border-t border-slate-300 mt-8 pt-3 flex justify-between items-center text-[9px] text-slate-400 font-mono">
+            <span>KAIROS CURRENCY SENTIMENT ENGINE™</span>
+            <span>DISTRIBUCIÓN RESTRINGIDA // AUDITORÍA INTERNA DE TRADING</span>
+        </div>
+    </div>
+
+    <!-- Script de Inyección del Sistema (Points to root js folder) -->
+    <script src="../js/inject-engine.js"></script>
+    
+    <!-- Lógica de la Aplicación -->
+    <script>
+        const state = {
+            p2: 'neutral',
+            p3: 'neutral',
+            p4: 'neutral',
+            p5: 'neutral'
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+        });
+
+        function saveToLocalStorage() {
+            const data = {
+                baseCurrency: document.getElementById('base-currency-select').value,
+                quoteCurrency: document.getElementById('quote-currency-select').value,
+                noteCB: document.getElementById('web-note-cb').value,
+                noteGeo: document.getElementById('web-note-geo').value,
+                p4Oil: document.getElementById('p4-oil').value,
+                p4Gold: document.getElementById('p4-gold').value,
+                p4Notes: document.getElementById('p4-notes').value,
+                p5Notes: document.getElementById('p5-notes').value,
+                state: state,
+                baseEvents: [],
+                quoteEvents: []
+            };
+
+            document.querySelectorAll('.base-event-row').forEach(row => {
+                const typeEl = row.querySelector('.event-type');
+                const biasEl = row.querySelector('.event-bias');
+                const noteEl = row.querySelector('.event-note');
+                if (typeEl && biasEl && noteEl) {
+                    data.baseEvents.push({
+                        type: typeEl.value,
+                        bias: biasEl.value,
+                        note: noteEl.value
+                    });
+                }
+            });
+
+            document.querySelectorAll('.quote-event-row').forEach(row => {
+                const typeEl = row.querySelector('.event-type');
+                const biasEl = row.querySelector('.event-bias');
+                const noteEl = row.querySelector('.event-note');
+                if (typeEl && biasEl && noteEl) {
+                    data.quoteEvents.push({
+                        type: typeEl.value,
+                        bias: biasEl.value,
+                        note: noteEl.value
+                    });
+                }
+            });
+
+            localStorage.setItem('kairos_sentiment_definer_es_data', JSON.stringify(data));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('kairos_sentiment_definer_es_data');
+            if (!saved) {
+                updateCurrencyLabels();
+                addNewEventRow('base');
+                addNewEventRow('quote');
+                return;
+            }
+
+            const data = JSON.parse(saved);
+
+            document.getElementById('base-currency-select').value = data.baseCurrency || 'EUR';
+            document.getElementById('quote-currency-select').value = data.quoteCurrency || 'AUD';
+            document.getElementById('web-note-cb').value = data.noteCB || '';
+            document.getElementById('web-note-geo').value = data.noteGeo || '';
+            document.getElementById('p4-oil').value = data.p4Oil || '';
+            document.getElementById('p4-gold').value = data.p4Gold || '';
+            document.getElementById('p4-notes').value = data.p4Notes || '';
+            document.getElementById('p5-notes').value = data.p5Notes || '';
+
+            if (data.state) {
+                for (let i = 2; i <= 5; i++) {
+                    if (data.state[`p${i}`]) {
+                        togglePillar(i, data.state[`p${i}`], false);
+                    }
+                }
+            }
+
+            document.getElementById('base-events-list').innerHTML = '';
+            document.getElementById('quote-events-list').innerHTML = '';
+
+            if (data.baseEvents && data.baseEvents.length > 0) {
+                data.baseEvents.forEach(evt => {
+                    addNewEventRow('base', evt.type, evt.bias, evt.note);
+                });
+            } else {
+                addNewEventRow('base');
+            }
+
+            if (data.quoteEvents && data.quoteEvents.length > 0) {
+                data.quoteEvents.forEach(evt => {
+                    addNewEventRow('quote', evt.type, evt.bias, evt.note);
+                });
+            } else {
+                addNewEventRow('quote');
+            }
+
+            updateCurrencyLabels();
+            calculateLogic(false);
+        }
+
+        function updateCurrencyLabels() {
+            const base = document.getElementById('base-currency-select').value;
+            const quote = document.getElementById('quote-currency-select').value;
+
+            document.getElementById('base-col-title').textContent = `Eventos ${base} (Base)`;
+            document.getElementById('quote-col-title').textContent = `Eventos ${quote} (Cotizada)`;
+            
+            calculateLogic();
+        }
+
+        let rowCounter = 0;
+        function addNewEventRow(side, optType = 'none', optBias = 'none', optNote = '') {
+            rowCounter++;
+            const containerId = side === 'base' ? 'base-events-list' : 'quote-events-list';
+            const container = document.getElementById(containerId);
+            
+            const row = document.createElement('div');
+            row.id = `event-row-${rowCounter}`;
+            row.className = `${side}-event-row bg-[#020203] border border-zinc-900 rounded-lg p-2.5 space-y-2 relative`;
+            
+            row.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <select onchange="handleRowChange(${rowCounter})" class="event-type flex-grow bg-[#040406] border border-zinc-900 text-[10px] p-1.5 rounded text-zinc-300 focus:outline-none focus:border-cyan-500/50 cursor-pointer min-w-0 font-mono">
+                        <option value="none">-- SELECCIONAR EVENTO --</option>
+                        
+                        <optgroup label="Actividad Económica y Crecimiento" class="bg-[#020203]">
+                            <option value="Business Confidence" ${optType === 'Business Confidence' ? 'selected' : ''}>Confianza Empresarial</option>
+                            <option value="Business Expectations" ${optType === 'Business Expectations' ? 'selected' : ''}>Expectativas Empresariales</option>
+                            <option value="Consumer Sentiment" ${optType === 'Consumer Sentiment' ? 'selected' : ''}>Sentimiento del Consumidor / Sentix</option>
+                            <option value="GDP" ${optType === 'GDP' ? 'selected' : ''}>PIB (Tasa de Crecimiento)</option>
+                            <option value="Industrial Production" ${optType === 'Industrial Production' ? 'selected' : ''}>Producción Industrial</option>
+                            <option value="PMIs" ${optType === 'PMIs' ? 'selected' : ''}>PMIs (Manufactura/Servicios)</option>
+                            <option value="PMI Flash" ${optType === 'PMI Flash' ? 'selected' : ''}>PMI (Flash/Preliminar)</option>
+                            <option value="Retail Sales" ${optType === 'Retail Sales' ? 'selected' : ''}>Ventas Minoristas</option>
+                            <option value="Trade Balance" ${optType === 'Trade Balance' ? 'selected' : ''}>Balanza Comercial</option>
+                            <option value="ZEW Conditions" ${optType === 'ZEW Conditions' ? 'selected' : ''}>Condiciones Económicas ZEW</option>
+                            <option value="ZEW Sentiment" ${optType === 'ZEW Sentiment' ? 'selected' : ''}>Sentimiento Económico ZEW</option>
+                        </optgroup>
+
+                        <optgroup label="Bancos Centrales" class="bg-[#020203]">
+                            <option value="CB Press" ${optType === 'CB Press' ? 'selected' : ''}>Decisiones / Conf. Prensa B.C.</option>
+                            <option value="Central Bank" ${optType === 'Central Bank' ? 'selected' : ''}>Minutas del Banco Central</option>
+                        </optgroup>
+
+                        <optgroup label="Inflación y Precios" class="bg-[#020203]">
+                            <option value="Inflation" ${optType === 'Inflation' ? 'selected' : ''}>Inflación (IPC/PCE)</option>
+                            <option value="PPI" ${optType === 'PPI' ? 'selected' : ''}>IPP (Inflación del Productor)</option>
+                        </optgroup>
+
+                        <optgroup label="Mercado Laboral y Salarios" class="bg-[#020203]">
+                            <option value="Employment" ${optType === 'Employment' ? 'selected' : ''}>Empleo (NFP/Tasa Desempleo)</option>
+                            <option value="Average Earnings" ${optType === 'Average Earnings' ? 'selected' : ''}>Ganancias Medias</option>
+
+                            <option value="JOLTs" ${optType === 'JOLTs' ? 'selected' : ''}>JOLTs (Ofertas de Empleo)</option>
+                            <option value="Labor Market" ${optType === 'Labor Market' ? 'selected' : ''}>Mercado Laboral</option>
+                            <option value="Wages" ${optType === 'Wages' ? 'selected' : ''}>Salarios y Ganancias (GBP/EUR)</option>
+                            <option value="Jobless Claims" ${optType === 'Jobless Claims' ? 'selected' : ''}>Solicitudes de Desempleo (Semanales)</option>
+                        </optgroup>
+
+                        <optgroup label="Riesgo y Geopolítica" class="bg-[#020203]">
+                            <option value="Geopolitics" ${optType === 'Geopolitics' ? 'selected' : ''}>Geopolítica / Riesgo de Guerra</option>
+                        </optgroup>
+                    </select>
+
+                    <select onchange="calculateLogic()" class="event-bias w-32 shrink-0 bg-[#040406] border border-zinc-900 text-[10px] p-1.5 rounded text-zinc-300 focus:outline-none focus:border-cyan-500/50 font-bold cursor-pointer font-mono">
+                        <option value="none">-- SESGO --</option>
+                        <option value="very_bullish" ${optBias === 'very_bullish' ? 'selected' : ''} class="text-green-400">🟢 MUY ALCISTA</option>
+                        <option value="bullish" ${optBias === 'bullish' ? 'selected' : ''} class="text-yellow-400">🟡 ALCISTA</option>
+                        <option value="bearish" ${optBias === 'bearish' ? 'selected' : ''} class="text-orange-400">🟠 BAJISTA</option>
+                        <option value="very_bearish" ${optBias === 'very_bearish' ? 'selected' : ''} class="text-red-400">🔴 MUY BAJISTA</option>
+                    </select>
+
+                    <button type="button" onclick="deleteEventRow(${rowCounter})" class="text-zinc-600 hover:text-rose-500 text-xs px-1 font-bold shrink-0 transition">
+                        ✕
+                    </button>
+                </div>
+
+                <div>
+                    <input type="text" id="note-input-${rowCounter}" value="${optNote}" oninput="saveToLocalStorage()" class="event-note w-full bg-[#040406] border border-zinc-900 text-[10px] p-1.5 rounded text-zinc-300 focus:outline-none focus:border-cyan-500/50 font-mono" placeholder="Objetivos de consenso, métricas, notas...">
+                </div>
+            `;
+            
+            container.appendChild(row);
+            handleRowChange(rowCounter);
+            calculateLogic();
+        }
+
+        function handleRowChange(rowId) {
+            const row = document.getElementById(`event-row-${rowId}`);
+            const selectType = row.querySelector('.event-type').value;
+            const noteInput = document.getElementById(`note-input-${rowId}`);
+
+            if (selectType === 'Geopolitics') {
+                noteInput.placeholder = "⚠️ Peligro Geopolítico: Registrar giros tácticos, flujos de riesgo...";
+                noteInput.className = "event-note w-full bg-rose-950/10 border border-rose-900/50 text-[10px] p-1.5 rounded text-rose-300 placeholder-rose-700 focus:outline-none focus:border-rose-400 font-mono";
+            } else {
+                noteInput.placeholder = "Objetivos de consenso, métricas, notas...";
+                noteInput.className = "event-note w-full bg-[#040406] border border-zinc-900 text-[10px] p-1.5 rounded text-zinc-300 focus:outline-none focus:border-cyan-500/50 font-mono";
+            }
+            calculateLogic();
+        }
+
+        function deleteEventRow(rowId) {
+            const row = document.getElementById('event-row-' + rowId);
+            if (row) {
+                row.remove();
+            }
+            calculateLogic();
+        }
+
+        function togglePillar(pillarNum, status, autoSave = true) {
+            state[`p${pillarNum}`] = status;
+
+            const buttons = ['buy', 'sell', 'neutral'];
+            buttons.forEach(btn => {
+                const el = document.getElementById('p' + pillarNum + '-' + btn);
+                if (el) {
+                    el.className = "flex-1 sm:flex-initial text-center min-w-[90px] bg-zinc-900 border border-zinc-800 text-[10px] font-mono px-2.5 py-1.5 rounded-md font-semibold text-zinc-400 transition hover:bg-zinc-800";
+                    if (btn === 'neutral') el.className = el.className.replace('min-w-[90px]', 'min-w-[70px]');
+                }
+            });
+
+            const activeEl = document.getElementById('p' + pillarNum + '-' + status);
+            if (activeEl) {
+                if (status === 'buy') activeEl.classList.add('active-buy');
+                if (status === 'sell') activeEl.classList.add('active-sell');
+                if (status === 'neutral') activeEl.classList.add('active-neutral');
+            }
+
+            calculateLogic(autoSave);
+        }
+
+        let currentCalculatedWeight = 0;
+        let currentCalculatedDirection = 'none';
+
+        function calculateLogic(autoSave = true) {
+            const base = document.getElementById('base-currency-select').value;
+            const quote = document.getElementById('quote-currency-select').value;
+            const decisionPanel = document.getElementById('decision-panel');
+            const decisionStatus = document.getElementById('decision-status');
+            const decisionReason = document.getElementById('decision-reason');
+            const consensusBadge = document.getElementById('consensus-badge');
+
+            const baseRows = document.querySelectorAll('.base-event-row');
+            const quoteRows = document.querySelectorAll('.quote-event-row');
+
+            let netWeight = 0;
+            let activeEventsCount = 0;
+            let geopoliticalSelected = false;
+
+            baseRows.forEach(row => {
+                const type = row.querySelector('.event-type').value;
+                const bias = row.querySelector('.event-bias').value;
+                if (type === 'Geopolitics') geopoliticalSelected = true;
+
+                if (bias === 'very_bullish') {
+                    netWeight += 2;
+                    activeEventsCount++;
+                } else if (bias === 'bullish') {
+                    netWeight += 1;
+                    activeEventsCount++;
+                } else if (bias === 'bearish') {
+                    netWeight -= 1;
+                    activeEventsCount++;
+                } else if (bias === 'very_bearish') {
+                    netWeight -= 2;
+                    activeEventsCount++;
+                }
+            });
+
+            quoteRows.forEach(row => {
+                const type = row.querySelector('.event-type').value;
+                const bias = row.querySelector('.event-bias').value;
+                if (type === 'Geopolitics') geopoliticalSelected = true;
+
+                if (bias === 'very_bullish') {
+                    netWeight -= 2; 
+                    activeEventsCount++;
+                } else if (bias === 'bullish') {
+                    netWeight -= 1; 
+                    activeEventsCount++;
+                } else if (bias === 'bearish') {
+                    netWeight += 1; 
+                    activeEventsCount++;
+                } else if (bias === 'very_bearish') {
+                    netWeight += 2; 
+                    activeEventsCount++;
+                }
+            });
+
+            currentCalculatedWeight = netWeight;
+            document.getElementById('net-calendar-weight').textContent = (netWeight > 0 ? '+' : '') + netWeight;
+
+            if (geopoliticalSelected) {
+                consensusBadge.className = "text-[9px] font-mono bg-rose-950/20 border border-rose-900/60 text-rose-400 px-1.5 py-0.5 rounded transition";
+                consensusBadge.textContent = "⚠️ Régimen de Alto Riesgo Geopolítico";
+            } else {
+                consensusBadge.className = "text-[9px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded transition";
+                consensusBadge.textContent = "Perfil de Volatilidad Normal";
+            }
+
+            if (activeEventsCount === 0 || netWeight === 0) {
+                decisionStatus.textContent = 'SIN SESGO';
+                decisionStatus.className = 'text-md font-black mt-1 text-zinc-500 font-mono tracking-wider';
+                decisionReason.textContent = 'Agrega un evento económico arriba para ver resultados.';
+                decisionPanel.className = "p-4 rounded-xl border flex flex-col items-center justify-center w-full sm:w-64 bg-[#020203] border-zinc-900";
+                currentCalculatedDirection = 'none';
+                if (autoSave) saveToLocalStorage();
+                return;
+            }
+
+            const step1Direction = netWeight > 0 ? 'buy' : 'sell';
+            currentCalculatedDirection = step1Direction;
+
+            let matchCount = 0;
+            for (let i = 2; i <= 5; i++) {
+                if (state[`p${i}`] === step1Direction) {
+                    matchCount++;
+                }
+            }
+
+            const dirText = step1Direction === 'buy' ? 'COMPRA' : 'VENTA';
+
+            if (matchCount >= 2) {
+                decisionStatus.textContent = `APROBADO (${dirText})`;
+                decisionStatus.className = 'text-md font-black mt-1 text-cyan-400 font-mono tracking-wider';
+                decisionReason.textContent = `Factores: ${matchCount}/4 coinciden con la dirección para ${base}/${quote}.`;
+                decisionPanel.className = "p-4 rounded-xl border flex flex-col items-center justify-center w-full sm:w-64 bg-cyan-950/10 border-cyan-500/30 shadow-[0_0_8px_rgba(34,211,238,0.1)]";
+            } else {
+                decisionStatus.textContent = 'SIN OPERACIÓN';
+                decisionStatus.className = 'text-md font-black mt-1 text-rose-400 font-mono tracking-wider';
+                decisionReason.textContent = `No hay suficientes factores coincidentes (${matchCount}/4 de acuerdo).`;
+                decisionPanel.className = "p-4 rounded-xl border flex flex-col items-center justify-center w-full sm:w-64 bg-rose-950/10 border-rose-500/30";
+            }
+
+            if (autoSave) {
+                saveToLocalStorage();
+            }
+        }
+
+        function prepareAndPrint() {
+            const baseCurr = document.getElementById('base-currency-select').value;
+            const quoteCurr = document.getElementById('quote-currency-select').value;
+            const formattedDate = new Date().toLocaleDateString('es-ES', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            document.getElementById('print-target-pair').textContent = `${baseCurr}/${quoteCurr}`;
+            document.getElementById('print-date').textContent = formattedDate;
+            
+            document.getElementById('table-print-pair').textContent = `${baseCurr}/${quoteCurr}`;
+            document.getElementById('table-print-date').textContent = formattedDate;
+            
+            const decText = document.getElementById('decision-status').textContent;
+            const decReason = document.getElementById('decision-reason').textContent;
+            
+            document.getElementById('table-print-verdict').textContent = decText;
+            document.getElementById('table-print-reason').textContent = decReason;
+            document.getElementById('table-print-weight').textContent = (currentCalculatedWeight > 0 ? '+' : '') + currentCalculatedWeight;
+
+            const catalystBody = document.getElementById('table-print-catalysts-body');
+            catalystBody.innerHTML = '';
+            let validRowsCount = 0;
+
+            const formatBias = (bias) => {
+                if (bias === 'very_bullish') return '🟢 Muy Alcista';
+                if (bias === 'bullish') return '🟡 Alcista';
+                if (bias === 'bearish') return '🟠 Bajista';
+                if (bias === 'very_bearish') return '🔴 Muy Bajista';
+                return '— Neutral';
+            };
+
+            document.querySelectorAll('.base-event-row').forEach(row => {
+                const type = row.querySelector('.event-type').value;
+                const bias = row.querySelector('.event-bias').value;
+                const note = row.querySelector('.event-note').value;
+                if (type !== 'none') {
+                    validRowsCount++;
+                    catalystBody.innerHTML += `
+                        <tr>
+                            <td class="font-bold font-mono">${baseCurr} <span class="text-slate-400 text-[10px] font-normal">(Base)</span></td>
+                            <td class="font-semibold">${type}</td>
+                            <td>${formatBias(bias)}</td>
+                            <td class="font-mono text-slate-500 text-[10px]">${note || '—'}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            document.querySelectorAll('.quote-event-row').forEach(row => {
+                const type = row.querySelector('.event-type').value;
+                const bias = row.querySelector('.event-bias').value;
+                const note = row.querySelector('.event-note').value;
+                if (type !== 'none') {
+                    validRowsCount++;
+                    catalystBody.innerHTML += `
+                        <tr>
+                            <td class="font-bold font-mono">${quoteCurr} <span class="text-slate-400 text-[10px] font-normal">(Cotizada)</span></td>
+                            <td class="font-semibold">${type}</td>
+                            <td>${formatBias(bias)}</td>
+                            <td class="font-mono text-slate-500 text-[10px]">${note || '—'}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (validRowsCount === 0) {
+                catalystBody.innerHTML = `<tr><td colspan="4" class="text-slate-400 text-center italic py-4">No se registraron eventos macroeconómicos para este cálculo.</td></tr>`;
+            }
+
+            const pillarBody = document.getElementById('table-print-pillars-body');
+            pillarBody.innerHTML = '';
+
+            const pillarDefinitions = [
+                { id: 2, title: 'Seguimiento del Modelo de Sentimiento Minorista (Filtros SSI)' },
+                { id: 3, title: 'Tarjeta de Puntuación de Ponderación de Divisas (Multifactores Macro)' },
+                { id: 4, title: 'Sentimiento de Riesgo y Factores de Commodities (Risk-On / Risk-Off)' },
+                { id: 5, title: 'Divergencias de Política Monetaria (Tasas de Bancos Centrales)' }
+            ];
+
+            pillarDefinitions.forEach(p => {
+                let alignText = '— Alineación Neutral';
+                if (state[`p${p.id}`] === 'buy') alignText = '🟢 Apoya Sesgo de Compra';
+                if (state[`p${p.id}`] === 'sell') alignText = '🔴 Apoya Sesgo de Venta';
+
+                let executionMetadata = '';
+                if (p.id === 4) {
+                    const oilVal = document.getElementById('p4-oil').value;
+                    const goldVal = document.getElementById('p4-gold').value;
+                    const noteVal = document.getElementById('p4-notes').value;
+                    if (oilVal || goldVal || noteVal) {
+                        executionMetadata = `<div class="text-[9px] text-slate-400 font-mono mt-0.5">Referencias: [Petróleo: ${oilVal || '—'}] [Oro: ${goldVal || '—'}] // Nota: ${noteVal || '—'}</div>`;
+                    }
+                } else if (p.id === 5) {
+                    const cbNote = document.getElementById('p5-notes').value;
+                    if (cbNote) {
+                        executionMetadata = `<div class="text-[9px] text-slate-400 font-mono mt-0.5">Nota de Política: ${cbNote}</div>`;
+                    }
+                }
+
+                pillarBody.innerHTML += `
+                    <tr>
+                        <td class="font-medium text-slate-900">${p.title} ${executionMetadata}</td>
+                        <td class="text-right font-bold tracking-wide">${alignText}</td>
+                    </tr>
+                `;
+            });
+
+            const p4Oil = document.getElementById('p4-oil').value.trim();
+            const p4Gold = document.getElementById('p4-gold').value.trim();
+            const p4Notes = document.getElementById('p4-notes').value.trim();
+            const cbText = document.getElementById('web-note-cb').value.trim();
+            const p5Notes = document.getElementById('p5-notes').value.trim();
+            const geoText = document.getElementById('web-note-geo').value.trim();
+
+            let riskSummary = [];
+            if (p4Notes) riskSummary.push(`Conductor: ${p4Notes}`);
+            if (p4Oil) riskSummary.push(`Petróleo: ${p4Oil}`);
+            if (p4Gold) riskSummary.push(`Oro: ${p4Gold}`);
+
+            document.getElementById('table-print-note-risk').textContent = riskSummary.join(' | ') || "El sentimiento de riesgo se mantiene en equilibrio baseline en los mercados globales.";
+            
+            let cbSummary = [];
+            if (cbText) cbSummary.push(cbText);
+            if (p5Notes) cbSummary.push(`Nota de Pilar: ${p5Notes}`);
+            
+            document.getElementById('table-print-note-cb').textContent = cbSummary.join('\n\n') || "Los perfiles de seguimiento monetario se mantienen consolidados dentro de las guías de los bancos centrales.";
+            document.getElementById('table-print-note-geo').textContent = geoText || "No hay parámetros de riesgo geopolítico registrados para esta secuencia.";
+
+            window.print();
+        }
+
+        function resetDashboard() {
+            if (confirm('¿Reiniciar Definidor de Sentimiento? Todos los datos guardados en caché se borrarán.')) {
+                localStorage.removeItem('kairos_sentiment_definer_es_data');
+
+                document.getElementById('base-currency-select').value = 'EUR';
+                document.getElementById('quote-currency-select').value = 'AUD';
+                
+                document.getElementById('web-note-cb').value = '';
+                document.getElementById('web-note-geo').value = '';
+                document.getElementById('p4-oil').value = '';
+                document.getElementById('p4-gold').value = '';
+                document.getElementById('p4-notes').value = '';
+                document.getElementById('p5-notes').value = '';
+
+                document.getElementById('base-events-list').innerHTML = '';
+                document.getElementById('quote-events-list').innerHTML = '';
+                
+                for (let i = 2; i <= 5; i++) {
+                    togglePillar(i, 'neutral', false);
+                }
+
+                updateCurrencyLabels();
+                addNewEventRow('base');
+                addNewEventRow('quote');
+            }
+        }
+    </script>
+</body>
+</html>
