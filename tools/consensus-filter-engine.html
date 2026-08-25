@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kairos Macro Hub // Motor de Expectativas y Consenso</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <!-- Link to external styles -->
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    body { background-color: #030305; color: #d4d4d8; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #030305; }
+    ::-webkit-scrollbar-thumb { background: #18181b; border-radius: 3px; }
+
+    @media screen { #outputContainer { display: none !important; } }
+    @media print {
+      .no-print { display: none !important; }
+      body, html { background: white !important; color: #0f172a !important; padding: 0 !important; margin: 0 !important; }
+      #outputContainer { display: block !important; width: 100% !important; background: white !important; margin: 0 !important; }
+      .page-break { page-break-before: always; }
+      table, tr, .report-card, .day-card { break-inside: avoid !important; page-break-inside: avoid !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .print-highlight-green { background-color: #dcfce7 !important; color: #166534 !important; }
+      .print-highlight-red { background-color: #fee2e2 !important; color: #991b1b !important; }
+    }
+
+    .badge-US, .badge-USA, .badge-USD { background-color: #D9E1F2; color: #1E293B; }
+    .badge-EMU, .badge-EU, .badge-EUR, .badge-DE, .badge-FR { background-color: #FFF2CC; color: #1E293B; }
+    .badge-GB, .badge-UK, .badge-GBP { background-color: #E2EFDA; color: #1E293B; }
+    .badge-JP, .badge-JPY { background-color: #FCE4D6; color: #1E293B; }
+    .badge-CA, .badge-CAD { background-color: #E1D5E7; color: #1E293B; }
+    .badge-AU, .badge-AUD { background-color: #D5E8D4; color: #1E293B; }
+    .badge-NZ, .badge-NZD { background-color: #DAE8FC; color: #1E293B; }
+    .badge-CH, .badge-CHF { background-color: #F8CECC; color: #1E293B; }
+    .badge-CN, .badge-CNH, .badge-CNY { background-color: #FFE6CC; color: #1E293B; }
+    .badge-DEFAULT { background-color: #E2E8F0; color: #1E293B; }
+
+    /* Clases de Resaltado para la vista web */
+    .row-highlight-green {
+      background-color: rgba(16, 185, 129, 0.12) !important;
+      border-left: 4px solid #10b981 !important;
+    }
+    .row-highlight-red {
+      background-color: rgba(239, 68, 68, 0.12) !important;
+      border-left: 4px solid #ef4444 !important;
+    }
+  </style>
+</head>
+<body class="bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen flex flex-col justify-between">
+
+  <!-- 1. DYNAMIC HEADER CONTAINER -->
+  <div id="global-header"></div>
+
+  <!-- 2. MAIN CONTENT BODY -->
+  <main class="flex-grow w-full max-w-6xl mx-auto px-3 md:px-6 py-6">
+    <div class="space-y-6 no-print">
+      
+      <!-- Encabezado Principal Kairos Style -->
+      <div class="bg-[#090a10] p-5 md:p-6 rounded-2xl border border-zinc-800 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>🎯</span> Kairos Consensus Hub
+          </h1>
+          <p class="text-zinc-400 text-xs mt-1">Visor y filtro de expectativas y rangos de consenso macroeconómico</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <a href="../tools.html" class="font-mono text-[11px] text-zinc-400 hover:text-cyan-400 transition-colors border border-zinc-800 bg-[#08080c] px-3 py-2 rounded-lg">
+            &larr; VOLVER AL CENTRO DE HERRAMIENTAS
+          </a>
+          <button onclick="exportStateJSON()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs px-3 py-2 rounded-lg transition">
+            📥 Exportar Backup
+          </button>
+          <button onclick="document.getElementById('jsonInput').click()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs px-3 py-2 rounded-lg transition">
+            📤 Cargar Backup
+          </button>
+          <input type="file" id="jsonInput" accept=".json" class="hidden" onchange="importStateJSON(event)" />
+
+          <button onclick="resetConsensusData()" class="bg-rose-950/20 hover:bg-rose-900/40 text-rose-300 border border-rose-900/40 text-xs px-3 py-2 rounded-lg transition">
+            🗑️ Borrar Memoria
+          </button>
+          <button onclick="triggerPrint()" class="bg-cyan-500 hover:bg-cyan-400 text-black text-xs px-4 py-2 rounded-lg font-bold shadow-md transition">
+            Exportar PDF &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- Zona Clicable / Dropzone Multi-Archivo -->
+      <div id="dropZone" class="bg-[#07080d] border border-dashed border-zinc-800 hover:border-cyan-500/60 rounded-2xl p-6 text-center transition cursor-pointer group">
+        <input type="file" id="excelInput" accept=".xlsx, .xls, .csv" multiple class="hidden" onchange="handleFileSelect(event)" />
+        <div class="space-y-1.5">
+          <svg class="mx-auto h-8 w-8 text-zinc-500 group-hover:text-cyan-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <div class="text-xs font-medium text-zinc-300">
+            Arrastra uno o <span class="text-cyan-400 font-semibold">múltiples archivos Excel (.xlsx) o CSV aquí</span> o haz clic para explorar
+          </div>
+          <p class="text-xs text-zinc-600 font-mono">Los datos se consolidarán y ordenarán cronológicamente (Lunes a Viernes) automáticamente.</p>
+        </div>
+      </div>
+
+      <!-- Estado Vacío -->
+      <div id="emptyState" class="bg-[#07080d] border border-zinc-800/80 rounded-2xl p-12 text-center text-zinc-500 space-y-2">
+        <span class="text-3xl block mb-2">📋</span>
+        <h3 class="text-sm font-semibold text-zinc-300">No hay tabla de consenso publicada</h3>
+        <p class="text-xs max-w-md mx-auto">Sube una o varias tablas de expectativas en la zona superior. Tus datos se mantendrán agregados y publicados en esta página.</p>
+      </div>
+
+      <!-- Resumen de Cobertura -->
+      <div id="summaryBar" class="hidden bg-[#07080d] border border-zinc-800/80 p-4 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-3 text-xs font-mono">
+        <div class="flex items-center gap-2 text-zinc-400">
+          <span class="text-cyan-400">🌐 Regiones Filtradas:</span>
+          <span class="text-zinc-200 font-bold">EE.UU., Eurozona, Reino Unido, Japón, Canadá, Australia, Nueva Zelanda, Suiza, China</span>
+        </div>
+        <div id="totalEventsBadge" class="bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 px-3 py-1 rounded-lg text-[11px] font-bold">
+          0 Datos de Consenso Filtrados
+        </div>
+      </div>
+
+      <!-- BARRA DE FILTROS Y BÚSQUEDA -->
+      <div id="consensusFilterBar" class="hidden bg-[#07080d] border border-zinc-800 p-3 rounded-2xl flex flex-col md:flex-row gap-3 justify-between items-center text-xs">
+        <div class="flex items-center gap-1.5 flex-wrap" id="geoFilterGroup">
+          <span class="text-zinc-500 text-[10px] font-bold uppercase mr-1">Filtrar Región:</span>
+          <button onclick="filterByGeo('ALL')" class="geo-filter-btn px-2 py-1 rounded font-bold bg-cyan-500 text-black">TODAS</button>
+          <button onclick="filterByGeo('US')" class="geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300">EE.UU. (US)</button>
+          <button onclick="filterByGeo('EUR')" class="geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300">EUROZONA (EUR)</button>
+          <button onclick="filterByGeo('GB')" class="geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300">REINO UNIDO (GBP)</button>
+          <button onclick="filterByGeo('JP')" class="geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300">JAPÓN (JPY)</button>
+          <button onclick="filterByGeo('CA')" class="geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300">CANADÁ (CAD)</button>
+          <button onclick="filterByGeo('AU')" class="geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300">AUSTRALIA (AUD)</button>
+          <button onclick="filterByGeo('NZ')" class="geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300">N. ZELANDA (NZD)</button>
+          <button onclick="filterByGeo('CH')" class="geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300">SUIZA (CHF)</button>
+          <button onclick="filterByGeo('CN')" class="geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300">CHINA (CNH)</button>
+        </div>
+        <div class="w-full md:w-auto flex items-center gap-2">
+          <input type="text" id="indicatorSearchInput" oninput="applyConsensusFilters()" placeholder="🔍 Buscar indicador..." class="w-full md:w-48 bg-[#030305] border border-zinc-700/60 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono" />
+        </div>
+      </div>
+
+      <div id="liveConsensusContainer" class="space-y-8"></div>
+
+    </div>
+
+    <!-- ÁREA DE IMPRESIÓN / PDF EN ESPAÑOL -->
+    <div id="outputContainer"></div>
+  </main>
+
+  <!-- 3. DYNAMIC FOOTER CONTAINER -->
+  <div id="global-footer"></div>
+
+  <!-- INJECTION ENGINE SCRIPT (Points to root js folder) -->
+  <script src="../js/inject-engine.js"></script>
+
+  <script>
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    const ALLOWED_GEOS = [
+      'US', 'USA', 'USD', 'AU', 'AUS', 'AUD', 'CH', 'CHE', 'CHF',
+      'NZ', 'NZL', 'NZD', 'CN', 'CHN', 'CNH', 'CNY', 'JP', 'JPN', 'JPY',
+      'GB', 'UK', 'GBP', 'EMU', 'EU', 'EUR', 'DE', 'DEU', 'FR', 'FRA', 'CA', 'CAN', 'CAD'
+    ];
+
+    let activeGeoFilter = 'ALL';
+    let globalState = { daysData: {} };
+
+    const dropZone = document.getElementById('dropZone');
+    const excelInput = document.getElementById('excelInput');
+
+    dropZone.addEventListener('click', () => excelInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
+    dropZone.addEventListener('dragenter', (e) => { e.preventDefault(); dropZone.classList.add('border-cyan-500'); });
+    dropZone.addEventListener('dragleave', (e) => {
+      if (!dropZone.contains(e.relatedTarget)) {
+        dropZone.classList.remove('border-cyan-500');
+      }
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-cyan-500');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        processFiles(e.dataTransfer.files);
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadFromLocalStorage();
+    });
+
+    function saveToLocalStorage() {
+      localStorage.setItem('kairos_consensus_hub_state', JSON.stringify(globalState));
+    }
+
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem('kairos_consensus_hub_state');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          globalState = normalizeState(parsed);
+          if (Object.keys(globalState.daysData).length > 0) {
+            renderLiveConsensusApp();
+          }
+        } catch (e) {
+          console.error("Error al cargar datos desde memoria local", e);
+        }
+      }
+    }
+
+    function normalizeState(state) {
+      if (!state || !state.daysData) return { daysData: {} };
+      const newDaysData = {};
+      for (const [key, val] of Object.entries(state.daysData)) {
+        if (val && Array.isArray(val.events)) {
+          newDaysData[key] = val;
+        } else if (Array.isArray(val)) {
+          const info = parseHeaderToIsoAndFormatted(key);
+          const isoKey = info.iso !== "9999-99-99" ? info.iso : key;
+          newDaysData[isoKey] = {
+            isoDate: isoKey,
+            formattedDay: info.formatted || key,
+            events: val.map(e => ({ ...e, status: e.status || 'none' }))
+          };
+        }
+      }
+      return { daysData: newDaysData };
+    }
+
+    function exportStateJSON() {
+      try {
+        const dataStr = JSON.stringify(globalState, null, 2);
+        const blob = new Blob([dataStr], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.href = url;
+        downloadAnchor.download = `kairos_consensus_backup_${new Date().toISOString().slice(0,10)}.json`;
+        
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        
+        setTimeout(() => {
+          if (document.body.contains(downloadAnchor)) {
+            document.body.removeChild(downloadAnchor);
+          }
+          URL.revokeObjectURL(url);
+        }, 2000);
+      } catch (err) {
+        console.error("Export error:", err);
+        alert("Error al exportar el archivo JSON de respaldo.");
+      }
+    }
+
+    function importStateJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (parsed && typeof parsed === 'object') {
+            globalState = normalizeState(parsed);
+            saveToLocalStorage();
+            renderLiveConsensusApp();
+            alert('¡Respaldo de consenso cargado correctamente!');
+          } else {
+            throw new Error("Formato JSON no válido");
+          }
+        } catch(err) {
+          console.error("Import error:", err);
+          alert('Error al leer el archivo JSON de respaldo.');
+        } finally {
+          e.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function handleFileSelect(e) {
+      if (e.target.files && e.target.files.length) {
+        processFiles(e.target.files);
+      }
+    }
+
+    function isAllowedGeo(geoCode) {
+      if (!geoCode) return false;
+      return ALLOWED_GEOS.includes(String(geoCode).trim().toUpperCase());
+    }
+
+    function isValidConsensus(val) {
+      if (val === null || val === undefined) return false;
+      const str = String(val).trim().toUpperCase();
+      if (str === "" || str === "-" || str === "--" || str === "N/A" || str === "NULL" || str === "UNDEFINED") return false;
+      return true;
+    }
+
+    function parseHeaderToIsoAndFormatted(rawHeaderStr) {
+      if (!rawHeaderStr) return { iso: "9999-99-99", formatted: "FECHA DESCONOCIDA" };
+      const str = String(rawHeaderStr).trim();
+      if (!str) return { iso: "9999-99-99", formatted: "FECHA DESCONOCIDA" };
+
+      const refDate = new Date();
+      const currentYear = refDate.getFullYear() || 2026;
+
+      const dayNamesEs = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
+      const monthNamesEs = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+      const monthNamesEn = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+
+      const dayMap = {
+        'SUNDAY': 0, 'DOMINGO': 0, 'MONDAY': 1, 'LUNES': 1,
+        'TUESDAY': 2, 'MARTES': 2, 'WEDNESDAY': 3, 'MIÉRCOLES': 3, 'MIERCOLES': 3,
+        'THURSDAY': 4, 'JUEVES': 4, 'FRIDAY': 5, 'VIERNES': 5,
+        'SATURDAY': 6, 'SÁBADO': 6, 'SABADO': 6
+      };
+
+      if (/Current Month/i.test(str)) {
+        let targetDow = null;
+        for (const [key, dow] of Object.entries(dayMap)) {
+          if (new RegExp('\\b' + key + '\\b', 'i').test(str)) {
+            targetDow = dow;
+            break;
+          }
+        }
+
+        const dayMatch = str.match(/Current Month\s+(\d{1,2})/i);
+        if (dayMatch && targetDow !== null) {
+          const dayNum = parseInt(dayMatch[1], 10);
+          let candidates = [];
+
+          for (let m = 0; m < 12; m++) {
+            const d = new Date(Date.UTC(currentYear, m, dayNum));
+            if (d.getUTCMonth() === m && d.getUTCDay() === targetDow) {
+              candidates.push(d);
+            }
+          }
+
+          if (candidates.length > 0) {
+            candidates.sort((a, b) => Math.abs(a - refDate) - Math.abs(b - refDate));
+            const best = candidates[0];
+            
+            const yyyy = best.getUTCFullYear();
+            const mm = String(best.getUTCMonth() + 1).padStart(2, '0');
+            const dd = String(best.getUTCDate()).padStart(2, '0');
+            const iso = `${yyyy}-${mm}-${dd}`;
+
+            const formatted = `${dayNamesEs[targetDow]}, ${best.getUTCDate()} DE ${monthNamesEs[best.getUTCMonth()]} DE ${yyyy}`;
+            return { iso, formatted };
+          }
+        }
+      }
+
+      for (let m = 0; m < 12; m++) {
+        const enM = monthNamesEn[m];
+        const esM = monthNamesEs[m];
+        if (new RegExp('\\b' + enM + '\\b', 'i').test(str) || new RegExp('\\b' + esM + '\\b', 'i').test(str)) {
+          const cleanStrForDay = str.replace(/\b20\d{2}\b/g, '');
+          const dayMatch = cleanStrForDay.match(/\b(\d{1,2})\b/);
+          if (dayMatch) {
+            const dayNum = parseInt(dayMatch[1], 10);
+            const d = new Date(Date.UTC(currentYear, m, dayNum));
+            if (d.getUTCMonth() === m) {
+              const yyyy = d.getUTCFullYear();
+              const mm = String(m + 1).padStart(2, '0');
+              const dd = String(dayNum).padStart(2, '0');
+              const iso = `${yyyy}-${mm}-${dd}`;
+              const formatted = `${dayNamesEs[d.getUTCDay()]} ${dayNum} DE ${monthNamesEs[m]} DE ${yyyy}`;
+              return { iso, formatted };
+            }
+          }
+        }
+      }
+
+      const numMatch = str.match(/(\d{1,4})[-/.](\d{1,2})[-/.](\d{1,4})/);
+      if (numMatch) {
+        let p1 = parseInt(numMatch[1], 10), p2 = parseInt(numMatch[2], 10), p3 = parseInt(numMatch[3], 10);
+        let y, m, d;
+        if (p1 > 1000) { y = p1; m = p2 - 1; d = p3; }
+        else if (p3 > 1000) { y = p3; m = p2 - 1; d = p1; }
+        if (y && m >= 0 && m < 12 && d >= 1 && d <= 31) {
+          const dt = new Date(Date.UTC(y, m, d));
+          const yyyy = dt.getUTCFullYear();
+          const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+          const dd = String(dt.getUTCDate()).padStart(2, '0');
+          const iso = `${yyyy}-${mm}-${dd}`;
+          const formatted = `${dayNamesEs[dt.getUTCDay()]}, ${dt.getUTCDate()} DE ${monthNamesEs[dt.getUTCMonth()]} DE ${yyyy}`;
+          return { iso, formatted };
+        }
+      }
+
+      return { iso: "9999-99-99", formatted: str.toUpperCase() };
+    }
+
+    async function processFiles(fileList) {
+      const files = Array.from(fileList);
+      if (!files.length) return;
+
+      for (const file of files) {
+        await processSingleFile(file);
+      }
+
+      saveToLocalStorage();
+      renderLiveConsensusApp();
+      excelInput.value = "";
+    }
+
+    function processSingleFile(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+            parseSpreadsheetData(rawRows);
+          } catch (err) {
+            console.error("Error al procesar el archivo:", file.name, err);
+          }
+          resolve();
+        };
+        reader.onerror = () => resolve();
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function parseSpreadsheetData(rows) {
+      let currentIsoKey = "9999-99-99";
+      let currentFormattedDay = "FECHA DESCONOCIDA";
+
+      rows.forEach(row => {
+        if (!row || row.length === 0) return;
+        const cleanRow = row.map(cell => cell === null || cell === undefined ? "" : String(cell).trim());
+        const rowString = cleanRow.join(" ").trim();
+        if (!rowString) return;
+
+        if (cleanRow.includes("Macro Indicator / Sub-Metric") || cleanRow.includes("Consensus") || /Expectation Range/i.test(rowString)) return;
+
+        let headerRaw = null;
+
+        const targetDateIdx = cleanRow.findIndex(c => String(c).includes("Calendar Target Date:"));
+        if (targetDateIdx !== -1) {
+          headerRaw = cleanRow[targetDateIdx + 1] || cleanRow[targetDateIdx].replace("Calendar Target Date:", "");
+        } else if (/^(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|DOMINGO|LUNES|MARTES|MIÉRCOLES|MIERCOLES|JUEVES|VIERNES|SÁBADO|SABADO)/i.test(rowString) && !cleanRow.some(c => isAllowedGeo(c))) {
+          headerRaw = rowString;
+        }
+
+        if (headerRaw) {
+          const dateInfo = parseHeaderToIsoAndFormatted(headerRaw);
+          currentIsoKey = dateInfo.iso;
+          currentFormattedDay = dateInfo.formatted;
+
+          if (!globalState.daysData[currentIsoKey]) {
+            globalState.daysData[currentIsoKey] = {
+              isoDate: currentIsoKey,
+              formattedDay: currentFormattedDay,
+              events: []
+            };
+          }
+          return;
+        }
+
+        let time = "-", country = "", indicator = "", consensus = "-", range = "-", prior = "-";
+
+        let mergedColIdx = cleanRow.findIndex(c => {
+          if (!c.includes(":")) return false;
+          const prefix = c.split(":")[0].trim().toUpperCase();
+          return isAllowedGeo(prefix);
+        });
+
+        if (mergedColIdx !== -1) {
+          country = cleanRow[mergedColIdx].split(":")[0].trim().toUpperCase();
+          indicator = cleanRow[mergedColIdx].substring(country.length + 1).trim();
+          consensus = cleanRow[mergedColIdx + 1] || "-";
+          range = cleanRow[mergedColIdx + 2] || "-";
+          prior = cleanRow[mergedColIdx + 3] || "-";
+        } else {
+          let foundGeoIdx = cleanRow.findIndex(c => isAllowedGeo(c));
+          if (foundGeoIdx !== -1) {
+            country = cleanRow[foundGeoIdx].toUpperCase();
+            for (let i = 0; i < foundGeoIdx; i++) {
+              if (/^\d{1,2}:\d{2}(:\d{2})?\s*(AM|PM)?$/i.test(cleanRow[i]) || /^\d{1,2}\.\d{2}/.test(cleanRow[i])) {
+                time = cleanRow[i];
+                break;
+              }
+            }
+            if (foundGeoIdx + 1 < cleanRow.length) indicator = cleanRow[foundGeoIdx + 1];
+            const postIndicator = cleanRow.slice(foundGeoIdx + 2);
+            if (postIndicator.length >= 3) {
+              consensus = postIndicator[0]; range = postIndicator[1]; prior = postIndicator[2];
+            } else if (postIndicator.length === 2) {
+              consensus = postIndicator[0]; prior = postIndicator[1];
+            } else if (postIndicator.length === 1) {
+              consensus = postIndicator[0];
+            }
+          }
+        }
+
+        if (country && indicator && isAllowedGeo(country) && isValidConsensus(consensus)) {
+          if (!globalState.daysData[currentIsoKey]) {
+            globalState.daysData[currentIsoKey] = {
+              isoDate: currentIsoKey,
+              formattedDay: currentFormattedDay,
+              events: []
+            };
+          }
+
+          const dayObj = globalState.daysData[currentIsoKey];
+          const existingIdx = dayObj.events.findIndex(e => e.country === country && e.indicator === indicator);
+          const newItem = { time, country, indicator, consensus, range, prior, status: 'none' };
+
+          if (existingIdx !== -1) {
+            newItem.status = dayObj.events[existingIdx].status || 'none';
+            dayObj.events[existingIdx] = newItem;
+          } else {
+            dayObj.events.push(newItem);
+          }
+        }
+      });
+    }
+
+    function toggleEventStatus(isoKey, itemIndex) {
+      if (!globalState.daysData[isoKey] || !globalState.daysData[isoKey].events[itemIndex]) return;
+      
+      const currentStatus = globalState.daysData[isoKey].events[itemIndex].status || 'none';
+      let nextStatus = 'none';
+
+      if (currentStatus === 'none') nextStatus = 'green';
+      else if (currentStatus === 'green') nextStatus = 'red';
+      else if (currentStatus === 'red') nextStatus = 'none';
+
+      globalState.daysData[isoKey].events[itemIndex].status = nextStatus;
+      saveToLocalStorage();
+      renderLiveConsensusApp();
+    }
+
+    function renderLiveConsensusApp() {
+      const container = document.getElementById('liveConsensusContainer');
+      const emptyState = document.getElementById('emptyState');
+      const summaryBar = document.getElementById('summaryBar');
+      const filterBar = document.getElementById('consensusFilterBar');
+      const totalEventsBadge = document.getElementById('totalEventsBadge');
+
+      container.innerHTML = '';
+      let totalCount = 0;
+
+      const sortedIsoKeys = Object.keys(globalState.daysData).sort();
+
+      if (sortedIsoKeys.length === 0) {
+        emptyState.classList.remove('hidden');
+        summaryBar.classList.add('hidden');
+        filterBar.classList.add('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      summaryBar.classList.remove('hidden');
+      filterBar.classList.remove('hidden');
+
+      const searchQuery = (document.getElementById('indicatorSearchInput')?.value || '').toLowerCase();
+
+      sortedIsoKeys.forEach(isoKey => {
+        const dayObj = globalState.daysData[isoKey];
+        let events = dayObj.events || [];
+        if (!events || events.length === 0) return;
+
+        if (activeGeoFilter !== 'ALL') {
+          events = events.filter(e => {
+            const c = e.country.toUpperCase();
+            if (activeGeoFilter === 'US') return ['US', 'USA', 'USD'].includes(c);
+            if (activeGeoFilter === 'EUR') return ['EMU', 'EU', 'EUR', 'DE', 'DEU', 'FR', 'FRA'].includes(c);
+            if (activeGeoFilter === 'GB') return ['GB', 'UK', 'GBP'].includes(c);
+            if (activeGeoFilter === 'JP') return ['JP', 'JPN', 'JPY'].includes(c);
+            if (activeGeoFilter === 'CA') return ['CA', 'CAN', 'CAD'].includes(c);
+            if (activeGeoFilter === 'AU') return ['AU', 'AUS', 'AUD'].includes(c);
+            if (activeGeoFilter === 'NZ') return ['NZ', 'NZL', 'NZD'].includes(c);
+            if (activeGeoFilter === 'CH') return ['CH', 'CHE', 'CHF'].includes(c);
+            if (activeGeoFilter === 'CN') return ['CN', 'CHN', 'CNH', 'CNY'].includes(c);
+            return c === activeGeoFilter;
+          });
+        }
+
+        if (searchQuery) {
+          events = events.filter(e => (e.indicator || '').toLowerCase().includes(searchQuery) || (e.country || '').toLowerCase().includes(searchQuery));
+        }
+
+        if (events.length === 0) return;
+
+        totalCount += events.length;
+        const displayDay = dayObj.formattedDay || isoKey;
+
+        let dayCard = document.createElement('div');
+        dayCard.className = "day-card bg-[#07090e] border border-cyan-500/30 rounded-2xl shadow-xl shadow-cyan-950/20 space-y-4 overflow-hidden transition hover:border-cyan-500/50";
+
+        let dayHeader = `
+          <div class="bg-[#0b0f19] border-b border-cyan-500/30 px-5 py-3.5 flex justify-between items-center">
+            <div class="flex items-center gap-2 bg-cyan-500/15 border border-cyan-400/40 px-3 py-1.5 rounded-xl text-cyan-300 font-bold font-mono text-xs shadow-[0_0_12px_rgba(34,211,238,0.15)]">
+              <span>📅</span>
+              <span class="tracking-wider">${escapeHtml(displayDay)}</span>
+            </div>
+            <span class="text-[10px] text-cyan-200/80 font-mono bg-cyan-950/70 px-2.5 py-1 rounded-lg border border-cyan-500/30 shadow-sm">${events.length} Expectativas</span>
+          </div>
+        `;
+
+        let tableHTML = `
+          <div class="px-4 pb-4 overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr class="text-zinc-500 text-[10px] border-b border-zinc-800 uppercase tracking-wider">
+                  <th class="p-2.5">Hora</th>
+                  <th class="p-2.5">País</th>
+                  <th class="p-2.5">Indicador Macroeconómico</th>
+                  <th class="p-2.5 text-center">Consenso / Evaluación</th>
+                  <th class="p-2.5 text-center">Rango Expectativas</th>
+                  <th class="p-2.5 text-center">Previo</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        events.forEach((item) => {
+          const originalIndex = dayObj.events.findIndex(e => e.country === item.country && e.indicator === item.indicator);
+          const status = item.status || 'none';
+
+          let rowBgClass = 'bg-transparent';
+          let consensusTextColor = 'text-cyan-400';
+          let statusBtnHtml = '';
+
+          if (status === 'green') {
+            rowBgClass = 'row-highlight-green text-emerald-100';
+            consensusTextColor = 'text-emerald-400 font-extrabold';
+            statusBtnHtml = `<button onclick="toggleEventStatus('${isoKey}', ${originalIndex})" title="Resultado: Positivo / Superó Consenso" class="ml-2 px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition">🟢 Beat</button>`;
+          } else if (status === 'red') {
+            rowBgClass = 'row-highlight-red text-rose-100';
+            consensusTextColor = 'text-rose-400 font-extrabold';
+            statusBtnHtml = `<button onclick="toggleEventStatus('${isoKey}', ${originalIndex})" title="Resultado: Negativo / Decepcionó Consenso" class="ml-2 px-2 py-0.5 text-[10px] font-bold rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition">🔴 Miss</button>`;
+          } else {
+            statusBtnHtml = `<button onclick="toggleEventStatus('${isoKey}', ${originalIndex})" title="Hacer clic para evaluar resultado" class="ml-2 px-2 py-0.5 text-[10px] font-bold rounded bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 hover:text-white transition">⚪ Evaluador</button>`;
+          }
+
+          tableHTML += `
+            <tr class="${rowBgClass} border-b border-zinc-800/30 hover:bg-zinc-800/40 text-zinc-300 transition">
+              <td class="p-2.5 text-zinc-400 font-mono text-[11px]">${escapeHtml(item.time)}</td>
+              <td class="p-2.5"><span class="badge-${escapeHtml(item.country)} px-2 py-0.5 rounded font-bold text-[9px] tracking-wide">${escapeHtml(item.country)}</span></td>
+              <td class="p-2.5 font-sans text-zinc-100 text-xs font-medium">${escapeHtml(item.indicator)}</td>
+              <td class="p-2.5 text-center font-mono text-xs">
+                <span class="${consensusTextColor}">${escapeHtml(item.consensus)}</span>
+                ${statusBtnHtml}
+              </td>
+              <td class="p-2.5 text-center text-zinc-400 font-mono">${escapeHtml(item.range)}</td>
+              <td class="p-2.5 text-center text-zinc-500 font-mono">${escapeHtml(item.prior)}</td>
+            </tr>
+          `;
+        });
+
+        tableHTML += `
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        dayCard.innerHTML = dayHeader + tableHTML;
+        container.appendChild(dayCard);
+      });
+
+      totalEventsBadge.textContent = `${totalCount} Datos de Consenso Filtrados`;
+    }
+
+    function filterByGeo(geo) {
+      activeGeoFilter = geo;
+      const btns = document.querySelectorAll('.geo-filter-btn');
+      btns.forEach(btn => {
+        if (btn.getAttribute('onclick').includes(`'${geo}'`)) {
+          btn.className = "geo-filter-btn px-2 py-1 rounded font-bold bg-cyan-500 text-black";
+        } else {
+          btn.className = "geo-filter-btn px-2 py-1 rounded bg-zinc-800 text-zinc-300";
+        }
+      });
+      renderLiveConsensusApp();
+    }
+
+    function applyConsensusFilters() {
+      renderLiveConsensusApp();
+    }
+
+    function resetConsensusData() {
+      if (confirm('¿Deseas borrar la tabla de consenso guardada en pantalla?')) {
+        localStorage.removeItem('kairos_consensus_hub_state');
+        globalState = { daysData: {} };
+        renderLiveConsensusApp();
+      }
+    }
+
+    function triggerPrint() {
+      if (!globalState.daysData || Object.keys(globalState.daysData).length === 0) {
+        alert('No hay datos cargados para exportar a PDF.');
+        return;
+      }
+      renderPDFPrintPreview();
+      setTimeout(() => { window.print(); }, 200);
+    }
+
+    function renderPDFPrintPreview() {
+      const outputContainer = document.getElementById('outputContainer');
+      outputContainer.innerHTML = renderReportTemplate(globalState.daysData);
+    }
+
+    function renderReportTemplate(data) {
+      const text = {
+        title: "REPORTE MACROECONÓMICO DE CONSENSO Y EXPECTATIVAS",
+        subtitle: "Calendario Filtrado Institucional · Exclusivamente Países Seleccionados con Consenso Válido",
+        time: "HORA", country: "PAÍS / REGIÓN", indicator: "INDICADOR MACROECONÓMICO",
+        consensus: "CONSENSO", range: "RANGO EXPECTATIVAS", prior: "PREVIO",
+        footer: "Inteligencia Institucional de Consenso Macro · Kairos Integrated Risk Engine"
+      };
+
+      let html = `
+        <div class="report-card bg-white p-8 rounded-xl shadow-lg border border-slate-200 font-sans mb-12">
+          <h1 style="font-size: 18px; font-weight: bold; color: #0F172A; margin: 0; border-bottom: 2px solid #0F172A; padding-bottom: 4px;">${text.title}</h1>
+          <h2 style="font-size: 11px; color: #475569; margin: 4px 0 14px 0; font-style: italic;">${text.subtitle}</h2>
+      `;
+
+      const sortedIsoKeys = Object.keys(data).sort();
+
+      sortedIsoKeys.forEach(isoKey => {
+        const dayObj = data[isoKey];
+        const events = dayObj.events || [];
+        if (!events || events.length === 0) return;
+        const displayDay = dayObj.formattedDay || isoKey;
+
+        html += `
+          <div style="background-color: #1F385C; color: white; padding: 6px 10px; font-weight: bold; font-size: 11px; margin-top: 16px; text-transform: uppercase;">
+            ${escapeHtml(displayDay)}
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 12px; border: 1px solid #CBD5E1;">
+            <thead>
+              <tr style="background-color: #0F172A; color: white; text-align: left;">
+                <th style="padding: 6px; width: 8%; border: 1px solid #334155;">${text.time}</th>
+                <th style="padding: 6px; width: 14%; border: 1px solid #334155;">${text.country}</th>
+                <th style="padding: 6px; width: 42%; border: 1px solid #334155;">${text.indicator}</th>
+                <th style="padding: 6px; width: 12%; border: 1px solid #334155; text-align: center;">${text.consensus}</th>
+                <th style="padding: 6px; width: 12%; border: 1px solid #334155; text-align: center;">${text.range}</th>
+                <th style="padding: 6px; width: 12%; border: 1px solid #334155; text-align: center;">${text.prior}</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        events.forEach((item, idx) => {
+          let rowStyle = idx % 2 === 0 ? 'background-color: #FFFFFF;' : 'background-color: #F8FAFC;';
+          let consensusStyle = 'font-weight: bold; color: #0369A1;';
+
+          if (item.status === 'green') {
+            rowStyle = 'background-color: #dcfce7; color: #166534; font-weight: 600;';
+            consensusStyle = 'font-weight: bold; color: #15803d;';
+          } else if (item.status === 'red') {
+            rowStyle = 'background-color: #fee2e2; color: #991b1b; font-weight: 600;';
+            consensusStyle = 'font-weight: bold; color: #b91c1c;';
+          }
+
+          html += `
+            <tr style="${rowStyle} border-bottom: 1px solid #E2E8F0;">
+              <td style="padding: 5px; font-family: monospace; border: 1px solid #E2E8F0; text-align: center;">${escapeHtml(item.time)}</td>
+              <td style="padding: 5px; border: 1px solid #E2E8F0; text-align: center;"><span class="badge-${escapeHtml(item.country)}" style="padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 9px;">${escapeHtml(item.country)}</span></td>
+              <td style="padding: 5px; font-weight: 500; border: 1px solid #E2E8F0;">${escapeHtml(item.indicator)}</td>
+              <td style="padding: 5px; ${consensusStyle} border: 1px solid #E2E8F0; text-align: center;">${escapeHtml(item.consensus)}</td>
+              <td style="padding: 5px; color: #475569; border: 1px solid #E2E8F0; text-align: center;">${escapeHtml(item.range)}</td>
+              <td style="padding: 5px; color: #475569; border: 1px solid #E2E8F0; text-align: center;">${escapeHtml(item.prior)}</td>
+            </tr>
+          `;
+        });
+
+        html += `
+            </tbody>
+          </table>
+        `;
+      });
+
+      html += `
+        <div style="margin-top: 24px; border-top: 1px solid #CBD5E1; padding-top: 6px; text-align: center; font-size: 8px; color: #64748B;">
+          ${text.footer}
+        </div>
+      </div>`;
+
+      return html;
+    }
+  </script>
+</body>
+</html>
