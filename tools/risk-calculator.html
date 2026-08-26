@@ -28,7 +28,7 @@
                 <h1 class="text-base sm:text-lg font-bold text-white uppercase tracking-wider">Risk/Position Size Calculator</h1>
                 <p class="text-xs text-zinc-500 mt-1">// Quantitative Position Unit Sizing Matrix</p>
             </div>
-            <a href="../tools.html" class="font-mono text-[11px] text-zinc-400 hover:text-cyan-400 transition-colors border border-zinc-800 bg-[#08080c] px-3 py-1.5 rounded-lg">
+            <a href="https://matterr99.github.io/kairos-macro-trading-hub/tools.html" class="font-mono text-[11px] text-zinc-400 hover:text-cyan-400 transition-colors border border-zinc-800 bg-[#08080c] px-3 py-1.5 rounded-lg">
                 &larr; BACK TO TOOLS HUB
             </a>
         </div>
@@ -99,7 +99,7 @@
                     <input id="calc-stop" type="number" value="20" class="w-full bg-[#020203] border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-cyan-500 font-semibold tabular-nums">
                 </div>
                 
-                <button onclick="executePositionMath()" class="w-full bg-zinc-900 border border-zinc-800 hover:border-cyan-500/40 text-zinc-300 hover:text-cyan-400 transition-all text-xs font-bold py-2.5 rounded uppercase tracking-wider">
+                <button onclick="executePositionMath()" class="w-full bg-zinc-900 border border-zinc-800 hover:border-cyan-500/40 text-zinc-300 hover:text-cyan-400 transition-all text-xs font-bold py-2.5 rounded uppercase tracking-wider cursor-pointer">
                     Calculate Risk Allocation
                 </button>
             </div>
@@ -134,7 +134,7 @@
     <!-- 3. DYNAMIC FOOTER CONTAINER -->
     <div id="global-footer"></div>
 
-    <!-- INJECTION ENGINE SCRIPT (Points to root js folder) -->
+    <!-- INJECTION ENGINE SCRIPT -->
     <script src="../js/inject-engine.js"></script>
     <script>
         let exchangeRates = null;
@@ -145,15 +145,15 @@
                 if (!res.ok) throw new Error("API stream connection error.");
                 const data = await res.json();
                 exchangeRates = data.rates;
-                executePositionMath();
             } catch (error) {
-                console.error("Pricing API down. Sizing fallbacks active:", error);
+                console.error("Pricing API down. Using 1.0 parity fallbacks:", error);
+            } finally {
+                executePositionMath();
             }
         }
 
         function getExchangeRate(fromCurrency, toCurrency) {
-            if (!exchangeRates) return 1.0; 
-            if (fromCurrency === toCurrency) return 1.0;
+            if (!exchangeRates || fromCurrency === toCurrency) return 1.0; 
             
             const rateFromUSD = exchangeRates[fromCurrency] || 1;
             const rateToUSD = exchangeRates[toCurrency] || 1;
@@ -171,7 +171,6 @@
             if (balance <= 0 || riskPct <= 0 || stopPips <= 0) return;
 
             const cashRisk = balance * (riskPct / 100);
-            const baseCurr = pair.substring(0, 3);
             const quoteCurr = pair.substring(3, 6);
             
             const pipSize = (quoteCurr === 'JPY') ? 0.01 : 0.0001;
@@ -182,21 +181,25 @@
             const pipValueInAccountPerLot = standardPipValueInQuote * conversionFactor;
 
             let standardLots = cashRisk / (stopPips * pipValueInAccountPerLot);
-            const runningPipVal = standardLots * pipValueInAccountPerLot;
-
+            
+            // Apply lot floor before calculating absolute pip value
             if (standardLots < 0.01) standardLots = 0.01;
+            const runningPipVal = standardLots * pipValueInAccountPerLot;
 
             document.getElementById('out-cash').textContent = cashRisk.toFixed(2) + ' ' + acctCurr;
             document.getElementById('out-lots').innerHTML = standardLots.toFixed(2) + ' <span class="text-xs font-medium text-zinc-600">Lots</span>';
             document.getElementById('out-pipval').textContent = runningPipVal.toFixed(2) + ' ' + acctCurr + ' / pip';
         }
 
+        // Attach listeners to both 'input' and 'change' events for dropdown compatibility
         document.querySelectorAll('input, select').forEach(element => {
             element.addEventListener('input', executePositionMath);
+            element.addEventListener('change', executePositionMath);
         });
 
         window.addEventListener('load', () => {
-            fetchLiveRates();
+            executePositionMath(); // Calculate initial values with defaults immediately
+            fetchLiveRates();      // Update with live API conversion rates
         });
     </script>
 </body>
