@@ -135,72 +135,71 @@
     <div id="global-footer"></div>
 
     <!-- INJECTION ENGINE SCRIPT -->
-    <script src="../js/inject-engine.js"></script>
-    <script>
-        let exchangeRates = null;
+<script src="../js/inject-engine.js"></script>
+<script>
+    let exchangeRates = null;
 
-        async function fetchLiveRates() {
-            try {
-                const res = await fetch('https://open.er-api.com/v6/latest/USD');
-                if (!res.ok) throw new Error("API stream connection error.");
-                const data = await res.json();
-                exchangeRates = data.rates;
-            } catch (error) {
-                console.error("Pricing API down. Using 1.0 parity fallbacks:", error);
-            } finally {
-                executePositionMath();
-            }
+    async function fetchLiveRates() {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
+        try {
+            const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!res.ok) throw new Error("API connection error.");
+            const data = await res.json();
+            exchangeRates = data.rates;
+        } catch (error) {
+            console.warn("Pricing API unavailable. Using parity fallbacks:", error);
+        } finally {
+            executePositionMath();
         }
+    }
 
-        function getExchangeRate(fromCurrency, toCurrency) {
-            if (!exchangeRates || fromCurrency === toCurrency) return 1.0; 
-            
-            const rateFromUSD = exchangeRates[fromCurrency] || 1;
-            const rateToUSD = exchangeRates[toCurrency] || 1;
-            
-            return rateToUSD / rateFromUSD;
-        }
+    function getExchangeRate(fromCurrency, toCurrency) {
+        if (!exchangeRates || fromCurrency === toCurrency) return 1.0; 
+        const rateFromUSD = exchangeRates[fromCurrency] || 1;
+        const rateToUSD = exchangeRates[toCurrency] || 1;
+        return rateToUSD / rateFromUSD;
+    }
 
-        function executePositionMath() {
-            const acctCurr = document.getElementById('calc-account-currency').value;
-            const pair = document.getElementById('calc-pair').value;
-            const balance = parseFloat(document.getElementById('calc-balance').value) || 0;
-            const riskPct = parseFloat(document.getElementById('calc-risk').value) || 0;
-            const stopPips = parseFloat(document.getElementById('calc-stop').value) || 0;
+    function executePositionMath() {
+        const acctCurr = document.getElementById('calc-account-currency').value;
+        const pair = document.getElementById('calc-pair').value;
+        const balance = parseFloat(document.getElementById('calc-balance').value) || 0;
+        const riskPct = parseFloat(document.getElementById('calc-risk').value) || 0;
+        const stopPips = parseFloat(document.getElementById('calc-stop').value) || 0;
 
-            if (balance <= 0 || riskPct <= 0 || stopPips <= 0) return;
+        if (balance <= 0 || riskPct <= 0 || stopPips <= 0) return;
 
-            const cashRisk = balance * (riskPct / 100);
-            const quoteCurr = pair.substring(3, 6);
-            
-            const pipSize = (quoteCurr === 'JPY') ? 0.01 : 0.0001;
-            const standardContractUnits = 100000;
-            const standardPipValueInQuote = pipSize * standardContractUnits; 
+        const cashRisk = balance * (riskPct / 100);
+        const quoteCurr = pair.substring(3, 6);
+        const pipSize = (quoteCurr === 'JPY') ? 0.01 : 0.0001;
+        const standardContractUnits = 100000;
+        const standardPipValueInQuote = pipSize * standardContractUnits; 
 
-            const conversionFactor = getExchangeRate(quoteCurr, acctCurr);
-            const pipValueInAccountPerLot = standardPipValueInQuote * conversionFactor;
+        const conversionFactor = getExchangeRate(quoteCurr, acctCurr);
+        const pipValueInAccountPerLot = standardPipValueInQuote * conversionFactor;
 
-            let standardLots = cashRisk / (stopPips * pipValueInAccountPerLot);
-            
-            // Apply lot floor before calculating absolute pip value
-            if (standardLots < 0.01) standardLots = 0.01;
-            const runningPipVal = standardLots * pipValueInAccountPerLot;
+        let standardLots = cashRisk / (stopPips * pipValueInAccountPerLot);
+        if (standardLots < 0.01) standardLots = 0.01;
+        const runningPipVal = standardLots * pipValueInAccountPerLot;
 
-            document.getElementById('out-cash').textContent = cashRisk.toFixed(2) + ' ' + acctCurr;
-            document.getElementById('out-lots').innerHTML = standardLots.toFixed(2) + ' <span class="text-xs font-medium text-zinc-600">Lots</span>';
-            document.getElementById('out-pipval').textContent = runningPipVal.toFixed(2) + ' ' + acctCurr + ' / pip';
-        }
+        document.getElementById('out-cash').textContent = cashRisk.toFixed(2) + ' ' + acctCurr;
+        document.getElementById('out-lots').innerHTML = standardLots.toFixed(2) + ' <span class="text-xs font-medium text-zinc-600">Lots</span>';
+        document.getElementById('out-pipval').textContent = runningPipVal.toFixed(2) + ' ' + acctCurr + ' / pip';
+    }
 
-        // Attach listeners to both 'input' and 'change' events for dropdown compatibility
+    // Run immediately when DOM is ready without waiting for external assets
+    document.addEventListener('DOMContentLoaded', () => {
+        executePositionMath();
+        fetchLiveRates();
+
         document.querySelectorAll('input, select').forEach(element => {
             element.addEventListener('input', executePositionMath);
             element.addEventListener('change', executePositionMath);
         });
-
-        window.addEventListener('load', () => {
-            executePositionMath(); // Calculate initial values with defaults immediately
-            fetchLiveRates();      // Update with live API conversion rates
-        });
-    </script>
+    });
+</script>
 </body>
 </html>
